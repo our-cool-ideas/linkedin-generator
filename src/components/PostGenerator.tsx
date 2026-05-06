@@ -318,7 +318,51 @@ function EmptyLinkedInCard({ dark }: { dark: boolean }) {
   );
 }
 
+// ── Toggle switch shared component ─────────────────────────────────────────
+
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+  dark,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+  dark: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      disabled={disabled}
+      className={cn(
+        "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+        "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        checked ? "bg-[#0077B5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200",
+          checked ? "translate-x-5" : "translate-x-0",
+        )}
+      />
+    </button>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
+
+type LinkedInStatus =
+  | { status: "idle" }
+  | { status: "connected"; name: string }
+  | { status: "posting" }
+  | { status: "posted" }
+  | { status: "post_error"; message: string };
 
 export default function PostGenerator() {
   const [dark, setDark] = useState(false);
@@ -330,14 +374,35 @@ export default function PostGenerator() {
   const [state, setState] = useState<GeneratorState>({ status: "idle" });
   const [copied, setCopied] = useState(false);
   const [previewView, setPreviewView] = useState<"desktop" | "mobile">("desktop");
+  const [li, setLi] = useState<LinkedInStatus>({ status: "idle" });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isLoading = state.status === "loading";
   const isAtLimit = brief.length >= MAX_BRIEF_LENGTH;
   const canSubmit = !isLoading && brief.trim().length > 0 && !isAtLimit;
 
-  const postCharCount = state.status === "success" ? state.post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "").length : 0;
+  const postCharCount = state.status === "success"
+    ? state.post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "").length
+    : 0;
   const postOverLimit = postCharCount > MAX_POST_LENGTH;
+
+  // Check LinkedIn connection on mount and after returning from OAuth
+  useEffect(() => {
+    fetch("/api/auth/linkedin/status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.connected) setLi({ status: "connected", name: data.name });
+      })
+      .catch(() => {});
+
+    // Show error from OAuth redirect query param
+    const params = new URLSearchParams(window.location.search);
+    const liError = params.get("li_error");
+    if (liError) {
+      setLi({ status: "post_error", message: "LinkedIn connection failed. Please try again." });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   async function handleGenerate() {
     if (!canSubmit) return;
@@ -354,6 +419,10 @@ export default function PostGenerator() {
         return;
       }
       setState({ status: "success", post: data.post });
+      // Reset any previous post status when a new post is generated
+      if (li.status === "posted" || li.status === "post_error") {
+        setLi({ status: "connected", name: (li as { name?: string }).name ?? "" });
+      }
     } catch {
       setState({ status: "error", message: "Something went wrong. Please try again." });
     }
@@ -361,33 +430,96 @@ export default function PostGenerator() {
 
   async function handleCopy() {
     if (state.status !== "success") return;
-    // Copy plain text (strip markdown)
     const plain = state.post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "");
     await navigator.clipboard.writeText(plain);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleDisconnect() {
+    await fetch("/api/auth/linkedin/logout", { method: "POST" });
+    setLi({ status: "idle" });
+  }
+
+  async function handlePostToLinkedIn() {
+    if (state.status !== "success" || li.status !== "connected") return;
+    setLi((prev) => ({ ...prev, status: "posting" } as LinkedInStatus));
+    try {
+      const res = await fetch("/api/linkedin/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post: state.post }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const name = li.status === "connected" ? li.name : "";
+        if (res.status === 401) {
+          setLi({ status: "idle" }); // token expired, force reconnect
+        } else {
+          setLi({ status: "post_error", message: data.error ?? "Failed to post." });
+          setTimeout(() => setLi({ status: "connected", name }), 4000);
+        }
+        return;
+      }
+      setLi((prev) => ({ ...prev, status: "posted" } as LinkedInStatus));
+    } catch {
+      const name = li.status === "connected" ? li.name : "";
+      setLi({ status: "post_error", message: "Network error. Please try again." });
+      setTimeout(() => setLi({ status: "connected", name }), 4000);
+    }
+  }
+
   // Theme tokens
-  const pageBg = dark ? "bg-[#0a0a0a]" : "bg-gray-100";
+  const pageBg   = dark ? "bg-[#0a0a0a]"       : "bg-gray-100";
   const headerBg = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-white border-gray-200";
-  const cardBg = dark ? "bg-[#111318] border-[#2a2a2a]" : "bg-white border-gray-200";
-  const labelTx = dark ? "text-gray-100" : "text-gray-900";
-  const subTx = dark ? "text-gray-400" : "text-gray-500";
+  const cardBg   = dark ? "bg-[#111318] border-[#2a2a2a]" : "bg-white border-gray-200";
+  const labelTx  = dark ? "text-gray-100"       : "text-gray-900";
+  const subTx    = dark ? "text-gray-400"       : "text-gray-500";
   const inputCls = dark
     ? "bg-[#1b1f23] border-[#38434f] text-gray-100 placeholder-gray-600 focus:ring-[#0077B5]"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-[#0077B5]";
   const footerBg = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-gray-100 border-gray-200";
 
+  const liConnected = li.status === "connected";
+  const liPosting   = li.status === "posting";
+  const liPosted    = li.status === "posted";
+  const liName      = li.status === "connected" ? li.name : "";
+
   return (
     <div className={cn("min-h-screen flex flex-col transition-colors duration-200", pageBg)}>
 
       {/* ── Header ── */}
-      <header className={cn("border-b px-6 py-4 flex items-center justify-between", headerBg)}>
-        <h1 className={cn("text-xl font-bold tracking-tight", labelTx)}>
+      <header className={cn("border-b px-6 py-4 flex items-center justify-between gap-4", headerBg)}>
+        <h1 className={cn("text-xl font-bold tracking-tight flex-shrink-0", labelTx)}>
           LinkedIn Post Generator
         </h1>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-3 ml-auto">
+          {/* LinkedIn connect / user pill */}
+          {liConnected ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-[#0077B5]/10 text-[#0077B5] rounded-full px-3 py-1.5 text-xs font-medium">
+                <LinkedInLogo className="w-3.5 h-3.5 [&_path]:fill-[#0077B5]" />
+                <span className="max-w-[120px] truncate">{liName}</span>
+              </div>
+              <button
+                onClick={handleDisconnect}
+                className={cn("text-xs font-medium px-2 py-1 rounded-md transition-colors", subTx, dark ? "hover:bg-[#2a2a2a]" : "hover:bg-gray-100")}
+              >
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <a
+              href="/api/auth/linkedin"
+              className="flex items-center gap-2 bg-[#0077B5] hover:bg-[#005e8e] text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+            >
+              <LinkedInLogo className="w-3.5 h-3.5" />
+              Connect LinkedIn
+            </a>
+          )}
+
+          {/* Dark mode */}
           <button
             onClick={() => setDark((d) => !d)}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
@@ -398,7 +530,9 @@ export default function PostGenerator() {
           >
             {dark ? <IconSun /> : <IconMoon />}
           </button>
-          <div className="w-8 h-8 rounded-md bg-[#0077B5] flex items-center justify-center">
+
+          {/* LinkedIn logo badge */}
+          <div className="w-8 h-8 rounded-md bg-[#0077B5] flex items-center justify-center flex-shrink-0">
             <LinkedInLogo className="w-5 h-5" />
           </div>
         </div>
@@ -497,26 +631,7 @@ export default function PostGenerator() {
                 <p className={cn("text-sm font-semibold", labelTx)}>Include Emojis</p>
                 <p className={cn("text-xs mt-0.5", subTx)}>Add emojis to the post content</p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={useEmojis}
-                onClick={() => setUseEmojis((v) => !v)}
-                disabled={isLoading}
-                className={cn(
-                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  useEmojis ? "bg-[#0077B5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
-                )}
-              >
-                <span
-                  className={cn(
-                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200",
-                    useEmojis ? "translate-x-5" : "translate-x-0",
-                  )}
-                />
-              </button>
+              <Toggle checked={useEmojis} onChange={() => setUseEmojis((v) => !v)} disabled={isLoading} dark={dark} />
             </div>
 
             {/* Tags toggle */}
@@ -525,26 +640,7 @@ export default function PostGenerator() {
                 <p className={cn("text-sm font-semibold", labelTx)}>Include Hashtags</p>
                 <p className={cn("text-xs mt-0.5", subTx)}>Add relevant tags at the end</p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={useTags}
-                onClick={() => setUseTags((v) => !v)}
-                disabled={isLoading}
-                className={cn(
-                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  useTags ? "bg-[#0077B5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
-                )}
-              >
-                <span
-                  className={cn(
-                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200",
-                    useTags ? "translate-x-5" : "translate-x-0",
-                  )}
-                />
-              </button>
+              <Toggle checked={useTags} onChange={() => setUseTags((v) => !v)} disabled={isLoading} dark={dark} />
             </div>
 
             {/* Error */}
@@ -625,21 +721,72 @@ export default function PostGenerator() {
                   <p className={cn("text-sm", subTx)}>Generating your post…</p>
                 </div>
               ) : state.status === "success" ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <LinkedInCard post={state.post} mobile={previewView === "mobile"} dark={dark} />
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className={cn(
-                      "w-full rounded-lg py-2.5 text-sm font-medium transition-colors border",
-                      dark
-                        ? "border-[#38434f] bg-[#1b1f23] text-gray-300 hover:bg-[#2a2f35]"
-                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-                      "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-1",
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className={cn(
+                        "flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors border",
+                        dark
+                          ? "border-[#38434f] bg-[#1b1f23] text-gray-300 hover:bg-[#2a2f35]"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                        "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-1",
+                      )}
+                    >
+                      {copied ? "✓ Copied!" : "Copy Post"}
+                    </button>
+
+                    {liConnected && (
+                      <button
+                        type="button"
+                        onClick={handlePostToLinkedIn}
+                        disabled={liPosting || liPosted || postOverLimit}
+                        className={cn(
+                          "flex-1 rounded-lg py-2.5 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2",
+                          liPosted
+                            ? "bg-green-600"
+                            : "bg-[#0077B5] hover:bg-[#005e8e] active:bg-[#004f79]",
+                          "disabled:opacity-50 disabled:cursor-not-allowed",
+                          "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-1",
+                        )}
+                      >
+                        {liPosting ? (
+                          <>
+                            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            Posting…
+                          </>
+                        ) : liPosted ? (
+                          "✓ Posted!"
+                        ) : (
+                          <>
+                            <LinkedInLogo className="w-3.5 h-3.5" />
+                            Post to LinkedIn
+                          </>
+                        )}
+                      </button>
                     )}
-                  >
-                    {copied ? "✓ Copied!" : "Copy Post"}
-                  </button>
+                  </div>
+
+                  {/* Post error */}
+                  {li.status === "post_error" && (
+                    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      {li.message}
+                    </div>
+                  )}
+
+                  {/* Not connected nudge */}
+                  {!liConnected && (
+                    <p className={cn("text-xs text-center", subTx)}>
+                      <a href="/api/auth/linkedin" className="text-[#0077B5] font-medium hover:underline">
+                        Connect LinkedIn
+                      </a>{" "}
+                      to post directly from here
+                    </p>
+                  )}
                 </div>
               ) : (
                 <EmptyLinkedInCard dark={dark} />
