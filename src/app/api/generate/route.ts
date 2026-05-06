@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
-import { PROMPT } from "@/lib/prompt";
+import { buildDynamicPrompt } from "@/lib/prompt";
 import { ratelimit } from "@/lib/rateLimit";
 import { GenerateRequestSchema } from "@/lib/validation";
 
@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
 
   // Parse and validate input (Story 2.1)
   let brief: string;
+  let tone: "Analytical" | "Actionable" | "Inspirational";
+  let toneValue: number;
   try {
     const body = await req.json();
     const parsed = GenerateRequestSchema.safeParse(body);
@@ -42,6 +44,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
     brief = parsed.data.brief;
+    tone = parsed.data.tone;
+    toneValue = parsed.data.toneValue;
   } catch {
     console.error(`[${timestamp}] PARSE_ERROR ip=${ip} status=400`);
     return NextResponse.json(
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   console.log(
-    `[${timestamp}] GENERATE ip=${ip} rateLimit=${rateLimitPassed} brief="${brief.slice(0, 50)}${brief.length > 50 ? "…" : ""}"`,
+    `[${timestamp}] GENERATE ip=${ip} rateLimit=${rateLimitPassed} tone=${tone} toneValue=${toneValue} brief="${brief.slice(0, 50)}${brief.length > 50 ? "…" : ""}"`,
   );
 
   // AI generation with 15s timeout (Stories 2.3 + 2.4)
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
     const completion = await getOpenAI().chat.completions.create(
       {
         model: "poolside/laguna-xs.2:free",
-        messages: [{ role: "user", content: PROMPT + brief }],
+        messages: [{ role: "user", content: buildDynamicPrompt(tone, toneValue) + brief }],
       },
       { signal: controller.signal },
     );

@@ -1,3 +1,5 @@
+export type Tone = 'Analytical' | 'Actionable' | 'Inspirational'
+
 export type GeneratorState =
   | { status: 'idle' }
   | { status: 'loading' }
