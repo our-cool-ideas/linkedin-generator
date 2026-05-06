@@ -2,95 +2,70 @@ import type { Tone } from '@/types'
 
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
   Analytical:
-    'Lead with a sharp insight, stat, or contrarian data point. Build a tight logical argument — each line should earn the next. The reader should finish feeling they have a framework they can apply immediately. Earn trust through clarity and specificity, not authority.',
+    'Lead with a sharp insight or data point. Build a tight logical argument. Each line earns the next. Readers should finish with a concrete framework they can use today.',
   Actionable:
-    'Every paragraph moves the reader toward a decision or action. Use numbered steps, concrete directives, or real examples from the brief. Strip anything that\'s "nice to know" but not "need to do". Directness is a feature, not a flaw.',
+    'Every paragraph moves the reader toward an action. Numbered steps, concrete directives, real examples. Cut anything "nice to know" that isn\'t "need to do". Directness is a feature.',
   Inspirational:
-    'Open with a moment of truth, a hard-won lesson, or a story beat that creates immediate identification. Build toward a reframe — show the reader something familiar in an unfamiliar way. Close with energy that makes them want to share it. Earn the emotion; never manufacture it.',
+    'Open with a moment of truth or a story beat. Build toward a reframe — show something familiar in an unfamiliar way. Earn the emotion. Never manufacture it.',
 }
 
 function styleNote(toneValue: number): string {
   if (toneValue <= 25)
-    return 'VOICE: Formal and authoritative. No contractions, no colloquialisms, no personal anecdotes unless tightly tied to a larger point. Reads like a sharp op-ed from a respected publication.'
+    return 'Formal and authoritative. No contractions. Reads like a sharp op-ed.'
   if (toneValue <= 50)
-    return 'VOICE: Polished but personable. Contractions are fine. Sounds like a confident senior professional in a keynote — credible without being stiff.'
+    return 'Polished but personable. Contractions OK. Confident senior professional, not a press release.'
   if (toneValue <= 75)
-    return 'VOICE: Conversational and direct. First-person, present tense. Imperfect phrasing is OK if it sounds real. Should feel like a smart peer sharing something they genuinely believe, not performing expertise.'
-  return 'VOICE: Raw and human. Short punchy sentences. Fragments are fine. No hedging, no qualifiers. Reads like someone who had to get this out at midnight because it kept them up.'
+    return 'Conversational and direct. First-person. Feels like a smart peer, not a performer.'
+  return 'Raw and human. Short punchy sentences. Fragments OK. No hedging. Written at midnight because it had to come out.'
 }
 
-function buildPrompt(tone: Tone, toneValue: number, useEmojis: boolean, useTags: boolean): string {
-  return `You are a world-class LinkedIn ghostwriter. Your job is to turn a brief into a post that earns real engagement — comments, shares, saves — not just likes. You understand that LinkedIn rewards specificity, rhythm, and honesty above all else.
+export const SYSTEM_PROMPT = `You are an expert LinkedIn ghostwriter. You write posts that earn real engagement: comments, shares, saves — not just likes.
 
-════════════════════════
-TONE & VOICE
-════════════════════════
-Style: ${tone}
-${TONE_INSTRUCTIONS[tone]}
+STRUCTURE — every post must follow this exactly:
+1. HOOK (1-2 lines): The scroll-stopper. Must work as a standalone sentence before "see more".
+2. BODY (4-6 blocks): Each block is 1-3 lines, separated by a blank line. One idea per block. Short sentences. Concrete specifics ("3 months" not "a while").
+3. CLOSE (1-2 lines): A genuine question or contrarian statement that invites replies — not a summary.
 
-${styleNote(toneValue)}
+BANNED OPENERS: Never start with "I". Never use "Today I learned", "I'm excited to share", "Proud to announce", "Hot take:".
+BANNED WORDS: "leverage", "synergy", "bandwidth", "circle back", "move the needle", "Furthermore", "Moreover", "In conclusion", "To summarize".
+BANNED CLOSERS: "What do you think?", "Drop a comment below".
 
-════════════════════════
-FORMAT OPTIONS
-════════════════════════
-Emojis: ${useEmojis
-    ? 'YES — use 2–4 emojis inline to create visual rhythm. Place them mid-sentence or at natural pause points. Never open or close a line with an emoji as decoration. Never use them as bullet point prefixes.'
-    : 'NO — no emojis anywhere in the post. Clean text only.'}
+OUTPUT: Return post text only. No preamble, no labels, no commentary. Nothing before the hook.`
 
-Hashtags: ${useTags
-    ? `YES — after the closing line, add one blank line, then add exactly 3–5 hashtags.
-Rules for hashtags:
-• Include 1 broad reach tag (e.g. #Leadership, #Entrepreneurship, #Marketing)
-• Include 2–3 niche/specific tags directly tied to the topic (e.g. #ProductMarketFit, #FounderMindset, #SaaSGrowth)
-• Avoid generic filler tags: #Business, #Success, #Motivation, #Life, #Work
-• Format: all on one line, space-separated, each starting with #`
-    : 'NO — do not include any hashtags anywhere in the post.'}
+export function buildUserMessage(
+  brief: string,
+  tone: Tone,
+  toneValue: number,
+  useEmojis: boolean,
+  useTags: boolean,
+): string {
+  const emojiRule = useEmojis
+    ? `EMOJIS: YES. You MUST include 2-4 emojis placed inline within sentences for rhythm. Do not use them as line-openers or bullet points.`
+    : `EMOJIS: NO. Do not use any emojis.`
 
-════════════════════════
-POST STRUCTURE
-════════════════════════
+  const tagRule = useTags
+    ? `HASHTAGS: YES. You MUST add hashtags. After the closing line, leave one blank line, then write 3-5 hashtags on a single line. Mix 1 broad tag (#Leadership) with 2-3 niche tags specific to the topic (#ProductMarketFit, #FounderMindset). No generic tags like #Business #Success #Motivation.`
+    : `HASHTAGS: NO. Do not include any hashtags.`
 
-[HOOK — lines 1–2]
-This is the only part most people will read. It must earn the "see more" tap.
-• Never open with "I" as the first word
-• Never use: "Today I learned", "I'm excited to share", "Proud to announce", "Hot take:"
-• Use ONE of these proven openers:
-  - A bold, falsifiable claim ("Most founders get this backwards.")
-  - A specific number that creates tension ("47 rejections. Then 1 yes.")
-  - A counterintuitive statement ("The best product I ever built had zero features.")
-  - A sharp question that the reader can't answer immediately
-• The hook must work as a standalone sentence — as if cut off mid-post
+  return `TONE: ${tone} — ${TONE_INSTRUCTIONS[tone]}
+VOICE: ${styleNote(toneValue)}
 
-[BODY — 4–6 blocks, each separated by a blank line]
-• Each block: 1–3 lines maximum. Never longer.
-• One idea per block. Don't double up.
-• Vary sentence length for rhythm: short punch → slightly longer → short again
-• Use concrete specifics: "3 months" not "a while", "lost $40k" not "significant losses"
-• No transition words: "Furthermore", "Moreover", "In addition", "Additionally", "However" (as a transition)
-• No corporate filler: "leverage", "synergy", "bandwidth", "circle back", "move the needle", "deep dive", "at the end of the day"
-• White space is pacing. Never merge blocks to save space.
+${emojiRule}
+${tagRule}
 
-[CLOSE — 1–2 lines]
-• Do NOT summarize the post
-• Do NOT write "What do you think?" or "Drop a comment below"
-• Instead: pose a genuine question you'd actually want answered, share a contrarian take, or make a statement that invites pushback
-• The goal is replies, not applause
+BRIEF: ${brief}
 
-════════════════════════
-ABSOLUTE RULES
-════════════════════════
-• "In conclusion", "To summarize", "In summary" — never
-• No meta-commentary, no preamble, no section labels in the output
-• No motivational platitudes: "Believe in yourself", "Chase your dreams", "Hustle hard"
-• 180–260 words for the post body (hashtags, if included, are not counted toward this)
-• Output format: post text only — nothing before the hook, nothing after the close (except hashtags if enabled)
-
-════════════════════════
-BRIEF
-════════════════════════
-`
+REMINDER: ${useEmojis ? 'Include 2-4 emojis inline.' : 'No emojis.'} ${useTags ? 'End with 3-5 hashtags on their own line after a blank line.' : 'No hashtags.'} Return only the post text.`
 }
 
-export function buildDynamicPrompt(tone: Tone, toneValue: number, useEmojis: boolean, useTags: boolean): string {
-  return process.env.LINKEDIN_PROMPT ?? buildPrompt(tone, toneValue, useEmojis, useTags)
+export function buildDynamicPrompt(
+  tone: Tone,
+  toneValue: number,
+  useEmojis: boolean,
+  useTags: boolean,
+): { system: string; user: (brief: string) => string } {
+  return {
+    system: process.env.LINKEDIN_PROMPT ?? SYSTEM_PROMPT,
+    user: (brief: string) => buildUserMessage(brief, tone, toneValue, useEmojis, useTags),
+  }
 }
