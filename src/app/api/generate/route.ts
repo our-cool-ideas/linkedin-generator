@@ -67,10 +67,14 @@ export async function POST(req: NextRequest) {
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
   try {
+    const { system, user } = buildDynamicPrompt(tone, toneValue, useEmojis, useTags);
     const completion = await getOpenAI().chat.completions.create(
       {
         model: "poolside/laguna-xs.2:free",
-        messages: [{ role: "user", content: buildDynamicPrompt(tone, toneValue, useEmojis, useTags) + brief }],
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user(brief) },
+        ],
       },
       { signal: controller.signal },
     );
