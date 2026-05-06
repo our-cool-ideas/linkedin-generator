@@ -1,0 +1,10 @@
+Tone : Analytical, Actionable, Inspirational
+POST Ideas : Later
+Choose format : Later
+
+Generate a page which is a professional LinkedIn generator
+On Left side : There should be a textarea for adding post description and a dropdown for choosing the tone from these Analytical, Actionable, Inspirational. And a slider to choose how human or professional the post should look. and finally There would be a button to generate the post 
+
+On Right side : There will be preview of generated post in the original linkedin view. There will be mobile or desktop view 
+
+Colour code : #0077B5, #000000
