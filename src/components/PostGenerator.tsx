@@ -1,42 +1,20 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import type { GeneratorState, Tone } from "@/types";
 
 const MAX_BRIEF_LENGTH = 500;
+const MAX_POST_LENGTH = 3000; // LinkedIn's character limit
 const TONES: Tone[] = ["Analytical", "Actionable", "Inspirational"];
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 
 function IconPerson() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
       <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-    </svg>
-  );
-}
-
-function IconLike() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-      <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
-    </svg>
-  );
-}
-
-function IconComment() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-      <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18z" />
-    </svg>
-  );
-}
-
-function IconShare() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-      <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
     </svg>
   );
 }
@@ -45,14 +23,10 @@ function IconSun() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
       <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" />
-      <line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
     </svg>
   );
 }
@@ -65,6 +39,54 @@ function IconMoon() {
   );
 }
 
+function IconGlobe() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+      <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM1.08 8.49h2.3a12.7 12.7 0 0 0 .82 3.84 6.93 6.93 0 0 1-3.12-3.84zM3.38 7.5h-2.3a6.93 6.93 0 0 1 3.12-3.84 12.7 12.7 0 0 0-.82 3.84zm1 .99h3.13v3.75a11.9 11.9 0 0 1-1.81-.44 11.78 11.78 0 0 1-1.32-3.31zm0-1h3.13V3.74A11.9 11.9 0 0 0 5.7 4.18 11.78 11.78 0 0 0 4.38 7.5zm4.13 4.74V8.49h3.12a11.78 11.78 0 0 1-1.32 3.31 11.9 11.9 0 0 1-1.8.44zm0-5.74V3.75a11.9 11.9 0 0 1 1.81.44 11.78 11.78 0 0 1 1.32 3.31H8.5zm1.63 5.83a12.7 12.7 0 0 0 .82-3.84h2.3a6.93 6.93 0 0 1-3.12 3.84zm.82-4.83a12.7 12.7 0 0 0-.82-3.84 6.93 6.93 0 0 1 3.12 3.84h-2.3z" />
+    </svg>
+  );
+}
+
+function IconDots() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
+    </svg>
+  );
+}
+
+function IconThumbUp({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? "#0077B5" : "none"} stroke={filled ? "#0077B5" : "currentColor"} strokeWidth="1.5" className="w-[18px] h-[18px]">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.25M6.633 10.5H5.25a1.5 1.5 0 00-1.5 1.5v5.25a1.5 1.5 0 001.5 1.5h1.383c.21 0 .413.07.575.2l.29.23" />
+    </svg>
+  );
+}
+
+function IconMessageCircle() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[18px] h-[18px]">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+    </svg>
+  );
+}
+
+function IconRepeat() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[18px] h-[18px]">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+    </svg>
+  );
+}
+
+function IconSend() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-[18px] h-[18px]">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+    </svg>
+  );
+}
+
 function LinkedInLogo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="white" className={className}>
@@ -73,89 +95,173 @@ function LinkedInLogo({ className }: { className?: string }) {
   );
 }
 
-// ── LinkedIn preview card ───────────────────────────────────────────────────
+// ── Markdown renderer for LinkedIn post ────────────────────────────────────
+// Converts markdown to styled spans — headings become bold lines, no block elements that break layout.
 
-function LinkedInCard({
-  post,
-  mobile,
-  dark,
-}: {
-  post: string;
-  mobile: boolean;
-  dark: boolean;
-}) {
+function PostMarkdown({ content, className }: { content: string; className?: string }) {
+  return (
+    <div className={cn("text-[14px] leading-[1.6] whitespace-pre-wrap break-words", className)}>
+      <ReactMarkdown
+        components={{
+          // Headings → bold paragraph-style text (strips the # literal)
+          h1: ({ children }) => <span className="block font-bold mb-1">{children}</span>,
+          h2: ({ children }) => <span className="block font-bold mb-1">{children}</span>,
+          h3: ({ children }) => <span className="block font-semibold mb-1">{children}</span>,
+          // Paragraphs → inline with spacing
+          p: ({ children }) => <span className="block mb-2 last:mb-0">{children}</span>,
+          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          // Strip list bullets — LinkedIn posts rarely have true bullet lists
+          ul: ({ children }) => <span className="block">{children}</span>,
+          ol: ({ children }) => <span className="block">{children}</span>,
+          li: ({ children }) => <span className="block pl-2 before:content-['•'] before:mr-2">{children}</span>,
+          // Strip code blocks
+          code: ({ children }) => <span className="font-mono text-xs">{children}</span>,
+          // No horizontal rules
+          hr: () => null,
+          // Links — plain text
+          a: ({ children }) => <span>{children}</span>,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
+// ── LinkedIn card ─────────────────────────────────────────────────────────
+
+const TRUNCATE_CHARS = 300;
+
+function LinkedInCard({ post, mobile, dark }: { post: string; mobile: boolean; dark: boolean }) {
+  const [liked, setLiked] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    setLiked(false);
     setExpanded(false);
   }, [post]);
 
-  const paragraphs = post.split("\n").filter(Boolean);
-  const visibleParagraphs = expanded ? paragraphs : paragraphs.slice(0, 3);
-  const hasMore = paragraphs.length > 3 && !expanded;
+  // Strip markdown for plain-text length check
+  const plainText = post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "");
+  const isLong = plainText.length > TRUNCATE_CHARS;
+  const showFull = expanded || !isLong;
+
+  // For the truncated view, cut the raw markdown at approx char boundary
+  const truncatedPost = isLong && !expanded
+    ? post.slice(0, TRUNCATE_CHARS)
+    : post;
+
+  const overLimit = post.length > MAX_POST_LENGTH;
+
+  const bg = dark ? "bg-[#1d2226]" : "bg-white";
+  const border = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const nameTx = dark ? "text-[#e8e8e3]" : "text-[#000000e6]";
+  const metaTx = dark ? "text-[#a8a09b]" : "text-[#00000099]";
+  const bodyTx = dark ? "text-[#e8e8e3]" : "text-[#000000e6]";
+  const divider = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const actionTx = dark ? "text-[#a8a09b] hover:bg-[#ffffff12]" : "text-[#00000099] hover:bg-[#0000000d]";
 
   return (
-    <div
-      className={cn(
-        "rounded-lg border overflow-hidden mx-auto",
-        mobile ? "max-w-[360px]" : "w-full",
-        dark ? "bg-[#1b1f23] border-[#38434f]" : "bg-white border-gray-200",
-      )}
-    >
-      {/* Header */}
-      <div className="p-4 flex items-start gap-3">
-        <div
-          className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0",
-            dark ? "bg-[#38434f] text-gray-400" : "bg-gray-200 text-gray-500",
-          )}
-        >
-          <IconPerson />
+    <div className={cn("rounded-lg border overflow-hidden mx-auto font-[system-ui,-apple-system,sans-serif]", bg, border, mobile ? "max-w-[375px]" : "w-full")}>
+
+      {/* ── Post header ── */}
+      <div className="px-4 pt-3 pb-2 flex items-start gap-2">
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div className={cn("w-12 h-12 rounded-full flex items-center justify-center overflow-hidden", dark ? "bg-[#38434f] text-[#a8a09b]" : "bg-[#c0c0c0] text-[#ffffff]")}>
+            <IconPerson />
+          </div>
+          {/* LinkedIn badge */}
+          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-sm bg-[#0077B5] flex items-center justify-center">
+            <LinkedInLogo className="w-3 h-3" />
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className={cn("font-semibold text-sm", dark ? "text-white" : "text-gray-900")}>
-            Your Name
-          </p>
-          <p className={cn("text-xs mt-0.5", dark ? "text-gray-400" : "text-gray-500")}>
-            Your Headline
-          </p>
-          <p className={cn("text-xs mt-0.5", dark ? "text-gray-500" : "text-gray-400")}>
-            Just now
-          </p>
+
+        {/* Meta */}
+        <div className="flex-1 min-w-0 ml-1">
+          <div className="flex items-center gap-1.5">
+            <p className={cn("text-sm font-semibold leading-tight", nameTx)}>Your Name</p>
+            <span className={cn("text-xs", metaTx)}>• 1st</span>
+          </div>
+          <p className={cn("text-xs leading-tight mt-0.5 truncate", metaTx)}>Your Professional Headline · Company</p>
+          <div className={cn("flex items-center gap-1 text-xs mt-0.5", metaTx)}>
+            <span>Just now</span>
+            <span>·</span>
+            <IconGlobe />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+          <button className={cn("text-[#0077B5] text-sm font-semibold px-3 py-1 rounded-full border border-[#0077B5] hover:bg-[#0077B5]/10 transition-colors", dark && "border-[#70b5f9] text-[#70b5f9]")}>
+            Follow
+          </button>
+          <button className={cn("p-1 rounded-full transition-colors", actionTx)}>
+            <IconDots />
+          </button>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="px-4 pb-4">
-        <div className={cn("text-sm leading-relaxed space-y-2", dark ? "text-gray-300" : "text-gray-800")}>
-          {visibleParagraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {hasMore && (
-            <button
-              onClick={() => setExpanded(true)}
-              className={cn("font-semibold hover:underline", dark ? "text-gray-400" : "text-gray-500")}
-            >
-              …see more
-            </button>
-          )}
+      {/* ── Post body ── */}
+      <div className="px-4 pb-3">
+        {/* Character limit warning */}
+        {overLimit && (
+          <div className="mb-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+            ⚠ This post exceeds LinkedIn&apos;s {MAX_POST_LENGTH.toLocaleString()} character limit
+          </div>
+        )}
+
+        <PostMarkdown content={truncatedPost} className={bodyTx} />
+
+        {isLong && !expanded && (
+          <button
+            onClick={() => setExpanded(true)}
+            className={cn("text-sm font-semibold mt-0.5", metaTx, "hover:underline")}
+          >
+            …see more
+          </button>
+        )}
+      </div>
+
+      {/* ── Reactions summary ── */}
+      <div className={cn("px-4 py-1.5 flex items-center justify-between border-t", divider)}>
+        <div className="flex items-center gap-1">
+          <span className="flex -space-x-0.5">
+            <span className="text-sm">👍</span>
+            <span className="text-sm">❤️</span>
+            <span className="text-sm">💡</span>
+          </span>
+          <span className={cn("text-xs ml-1", metaTx)}>{liked ? "You and 247 others" : "247"}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className={cn("text-xs hover:underline", metaTx)}>38 comments</button>
+          <span className={cn("text-xs", metaTx)}>·</span>
+          <button className={cn("text-xs hover:underline", metaTx)}>12 reposts</button>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className={cn("px-4 py-2 border-t flex items-center gap-1", dark ? "border-[#38434f]" : "border-gray-100")}>
+      {/* ── Action buttons ── */}
+      <div className={cn("px-2 py-0.5 flex items-center border-t", divider)}>
         {[
-          { icon: <IconLike />, label: "Like" },
-          { icon: <IconComment />, label: "Comment" },
-          { icon: <IconShare />, label: "Share" },
-        ].map(({ icon, label }) => (
+          {
+            icon: <IconThumbUp filled={liked} />,
+            label: "Like",
+            active: liked,
+            onClick: () => setLiked((l) => !l),
+          },
+          { icon: <IconMessageCircle />, label: "Comment", onClick: () => {} },
+          { icon: <IconRepeat />, label: "Repost", onClick: () => {} },
+          { icon: <IconSend />, label: "Send", onClick: () => {} },
+        ].map(({ icon, label, active, onClick }) => (
           <button
             key={label}
+            onClick={onClick}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors",
-              dark
-                ? "text-gray-400 hover:bg-[#38434f]"
-                : "text-gray-500 hover:bg-gray-100",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold transition-colors",
+              active ? "text-[#0077B5]" : actionTx,
+              mobile && label !== "Like" && "hidden",
+              mobile && "first:flex",
             )}
           >
             {icon}
@@ -168,60 +274,42 @@ function LinkedInCard({
 }
 
 function EmptyLinkedInCard({ dark }: { dark: boolean }) {
+  const bg = dark ? "bg-[#1d2226]" : "bg-white";
+  const border = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const nameTx = dark ? "text-[#e8e8e3]" : "text-[#000000e6]";
+  const metaTx = dark ? "text-[#a8a09b]" : "text-[#00000099]";
+  const divider = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const actionTx = dark ? "text-[#a8a09b]" : "text-[#00000060]";
+
   return (
-    <div
-      className={cn(
-        "rounded-lg border overflow-hidden w-full",
-        dark ? "bg-[#1b1f23] border-[#38434f]" : "bg-white border-gray-200",
-      )}
-    >
-      {/* Header */}
-      <div className="p-4 flex items-start gap-3">
-        <div
-          className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0",
-            dark ? "bg-[#38434f] text-gray-500" : "bg-gray-200 text-gray-400",
-          )}
-        >
+    <div className={cn("rounded-lg border overflow-hidden w-full font-[system-ui,-apple-system,sans-serif]", bg, border)}>
+      <div className="px-4 pt-3 pb-2 flex items-start gap-2">
+        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 relative", dark ? "bg-[#38434f] text-[#a8a09b]" : "bg-[#c0c0c0] text-white")}>
           <IconPerson />
+          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-sm bg-[#0077B5] flex items-center justify-center">
+            <LinkedInLogo className="w-3 h-3" />
+          </div>
         </div>
-        <div>
-          <p className={cn("font-semibold text-sm", dark ? "text-white" : "text-gray-900")}>
-            Your Name
-          </p>
-          <p className={cn("text-xs mt-0.5", dark ? "text-gray-400" : "text-gray-500")}>
-            Your Headline
-          </p>
-          <p className={cn("text-xs mt-0.5", dark ? "text-gray-500" : "text-gray-400")}>
-            Just now
-          </p>
+        <div className="flex-1 ml-1">
+          <div className="flex items-center gap-1.5">
+            <p className={cn("text-sm font-semibold", nameTx)}>Your Name</p>
+            <span className={cn("text-xs", metaTx)}>• 1st</span>
+          </div>
+          <p className={cn("text-xs mt-0.5", metaTx)}>Your Headline · Company</p>
+          <div className={cn("flex items-center gap-1 text-xs mt-0.5", metaTx)}>
+            <span>Just now</span><span>·</span><IconGlobe />
+          </div>
         </div>
       </div>
 
-      {/* Placeholder body */}
       <div className="px-4 pb-6">
-        <p className={cn("text-sm", dark ? "text-gray-600" : "text-gray-400")}>
-          Your generated LinkedIn post will appear here...
-        </p>
+        <p className={cn("text-sm", metaTx)}>Your generated LinkedIn post will appear here...</p>
       </div>
 
-      {/* Actions */}
-      <div className={cn("px-4 py-2 border-t flex items-center gap-1", dark ? "border-[#38434f]" : "border-gray-100")}>
-        {[
-          { icon: <IconLike />, label: "Like" },
-          { icon: <IconComment />, label: "Comment" },
-          { icon: <IconShare />, label: "Share" },
-        ].map(({ icon, label }) => (
-          <button
-            key={label}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold",
-              dark ? "text-gray-600" : "text-gray-400",
-            )}
-            disabled
-          >
-            {icon}
-            <span>{label}</span>
+      <div className={cn("px-2 py-0.5 flex items-center border-t", divider)}>
+        {["Like", "Comment", "Repost", "Send"].map((label) => (
+          <button key={label} disabled className={cn("flex-1 py-2.5 text-xs font-semibold", actionTx)}>
+            {label}
           </button>
         ))}
       </div>
@@ -245,6 +333,9 @@ export default function PostGenerator() {
   const isAtLimit = brief.length >= MAX_BRIEF_LENGTH;
   const canSubmit = !isLoading && brief.trim().length > 0 && !isAtLimit;
 
+  const postCharCount = state.status === "success" ? state.post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "").length : 0;
+  const postOverLimit = postCharCount > MAX_POST_LENGTH;
+
   async function handleGenerate() {
     if (!canSubmit) return;
     setState({ status: "loading" });
@@ -267,27 +358,30 @@ export default function PostGenerator() {
 
   async function handleCopy() {
     if (state.status !== "success") return;
-    await navigator.clipboard.writeText(state.post);
+    // Copy plain text (strip markdown)
+    const plain = state.post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "");
+    await navigator.clipboard.writeText(plain);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // bg & text tokens
+  // Theme tokens
   const pageBg = dark ? "bg-[#0a0a0a]" : "bg-gray-100";
   const headerBg = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-white border-gray-200";
   const cardBg = dark ? "bg-[#111318] border-[#2a2a2a]" : "bg-white border-gray-200";
-  const labelColor = dark ? "text-gray-100" : "text-gray-900";
-  const subLabel = dark ? "text-gray-400" : "text-gray-500";
-  const inputBg = dark
+  const labelTx = dark ? "text-gray-100" : "text-gray-900";
+  const subTx = dark ? "text-gray-400" : "text-gray-500";
+  const inputCls = dark
     ? "bg-[#1b1f23] border-[#38434f] text-gray-100 placeholder-gray-600 focus:ring-[#0077B5]"
     : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-[#0077B5]";
   const footerBg = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-gray-100 border-gray-200";
 
   return (
     <div className={cn("min-h-screen flex flex-col transition-colors duration-200", pageBg)}>
+
       {/* ── Header ── */}
       <header className={cn("border-b px-6 py-4 flex items-center justify-between", headerBg)}>
-        <h1 className={cn("text-xl font-bold tracking-tight", labelColor)}>
+        <h1 className={cn("text-xl font-bold tracking-tight", labelTx)}>
           LinkedIn Post Generator
         </h1>
         <div className="flex items-center gap-3">
@@ -296,9 +390,7 @@ export default function PostGenerator() {
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             className={cn(
               "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-              dark
-                ? "text-yellow-400 hover:bg-[#2a2a2a]"
-                : "text-gray-500 hover:bg-gray-100",
+              dark ? "text-yellow-400 hover:bg-[#2a2a2a]" : "text-gray-500 hover:bg-gray-100",
             )}
           >
             {dark ? <IconSun /> : <IconMoon />}
@@ -313,12 +405,12 @@ export default function PostGenerator() {
       <main className="flex-1 px-6 py-8">
         <div className="mx-auto max-w-6xl flex flex-col lg:flex-row gap-6">
 
-          {/* Left panel */}
+          {/* ── Left panel ── */}
           <div className={cn("w-full lg:w-[440px] lg:flex-shrink-0 rounded-xl border p-6 space-y-6", cardBg)}>
 
             {/* Description */}
             <div className="space-y-2">
-              <label htmlFor="brief" className={cn("block text-sm font-semibold", labelColor)}>
+              <label htmlFor="brief" className={cn("block text-sm font-semibold", labelTx)}>
                 Post Description
               </label>
               <textarea
@@ -334,18 +426,18 @@ export default function PostGenerator() {
                   "w-full rounded-lg border px-3 py-2.5 text-sm resize-none transition-colors",
                   "focus:outline-none focus:ring-2 focus:border-transparent",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
-                  inputBg,
+                  inputCls,
                   isAtLimit && "border-red-400",
                 )}
               />
-              <p className={cn("text-xs text-right tabular-nums", isAtLimit ? "text-red-500" : subLabel)}>
+              <p className={cn("text-xs text-right tabular-nums", isAtLimit ? "text-red-500" : subTx)}>
                 {brief.length}/{MAX_BRIEF_LENGTH}
               </p>
             </div>
 
-            {/* Tone */}
+            {/* Tone dropdown */}
             <div className="space-y-2">
-              <label htmlFor="tone" className={cn("block text-sm font-semibold", labelColor)}>
+              <label htmlFor="tone" className={cn("block text-sm font-semibold", labelTx)}>
                 Select Tone
               </label>
               <div className="relative">
@@ -364,11 +456,9 @@ export default function PostGenerator() {
                   )}
                   style={{ paddingRight: "2.5rem" }}
                 >
-                  {TONES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
+                  {TONES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
-                <span className={cn("pointer-events-none absolute right-3 top-1/2 -translate-y-1/2", subLabel)}>
+                <span className={cn("pointer-events-none absolute right-3 top-1/2 -translate-y-1/2", subTx)}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -378,15 +468,12 @@ export default function PostGenerator() {
 
             {/* Slider */}
             <div className="space-y-2">
-              <p className={cn("text-sm font-semibold", labelColor)}>
-                Professional vs. Human Tone
-              </p>
-              <div className="flex justify-between text-xs mb-1">
-                <span className={subLabel}>More Human</span>
-                <span className={subLabel}>More Professional</span>
+              <p className={cn("text-sm font-semibold", labelTx)}>Professional vs. Human Tone</p>
+              <div className="flex justify-between text-xs">
+                <span className={subTx}>More Human</span>
+                <span className={subTx}>More Professional</span>
               </div>
               <input
-                id="toneValue"
                 type="range"
                 min={0}
                 max={100}
@@ -408,7 +495,7 @@ export default function PostGenerator() {
               </div>
             )}
 
-            {/* Generate button */}
+            {/* Generate */}
             <button
               type="button"
               onClick={handleGenerate}
@@ -425,17 +512,28 @@ export default function PostGenerator() {
                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Generating…
                 </span>
-              ) : (
-                "Generate Post"
-              )}
+              ) : "Generate Post"}
             </button>
           </div>
 
-          {/* Right panel */}
+          {/* ── Right panel ── */}
           <div className={cn("flex-1 min-w-0 rounded-xl border overflow-hidden", cardBg)}>
-            {/* View toggle */}
-            <div className="flex items-start justify-between px-6 pt-5 pb-4">
-              <p className={cn("text-sm font-semibold", labelColor)}>Preview</p>
+
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-4">
+              <div className="flex items-center gap-3">
+                <p className={cn("text-sm font-semibold", labelTx)}>Preview</p>
+                {state.status === "success" && (
+                  <span className={cn(
+                    "text-xs tabular-nums font-medium px-2 py-0.5 rounded-full",
+                    postOverLimit
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-green-100 text-green-700",
+                  )}>
+                    {postCharCount.toLocaleString()} / {MAX_POST_LENGTH.toLocaleString()} chars
+                  </span>
+                )}
+              </div>
               <div className={cn("flex rounded-lg overflow-hidden border", dark ? "border-[#38434f]" : "border-gray-200")}>
                 {(["desktop", "mobile"] as const).map((v) => (
                   <button
@@ -456,21 +554,16 @@ export default function PostGenerator() {
               </div>
             </div>
 
-            {/* Preview content */}
+            {/* Preview body */}
             <div className="px-6 pb-6">
-              <div
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-                className="sr-only"
-              >
+              <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
                 {state.status === "success" ? "Your LinkedIn post is ready." : ""}
               </div>
 
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center min-h-64 gap-3">
                   <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#0077B5] border-t-transparent" />
-                  <p className={cn("text-sm", subLabel)}>Generating your post…</p>
+                  <p className={cn("text-sm", subTx)}>Generating your post…</p>
                 </div>
               ) : state.status === "success" ? (
                 <div className="space-y-4">
@@ -494,11 +587,12 @@ export default function PostGenerator() {
               )}
             </div>
           </div>
+
         </div>
       </main>
 
       {/* ── Footer ── */}
-      <footer className={cn("border-t py-4 text-center text-xs", footerBg, subLabel)}>
+      <footer className={cn("border-t py-4 text-center text-xs", footerBg, subTx)}>
         Powered by AI • LinkedIn Post Generator
       </footer>
     </div>
