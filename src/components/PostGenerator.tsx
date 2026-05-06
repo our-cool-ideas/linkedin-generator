@@ -326,6 +326,7 @@ export default function PostGenerator() {
   const [tone, setTone] = useState<Tone>("Analytical");
   const [toneValue, setToneValue] = useState(40);
   const [useEmojis, setUseEmojis] = useState(false);
+  const [useTags, setUseTags] = useState(false);
   const [state, setState] = useState<GeneratorState>({ status: "idle" });
   const [copied, setCopied] = useState(false);
   const [previewView, setPreviewView] = useState<"desktop" | "mobile">("desktop");
@@ -345,7 +346,7 @@ export default function PostGenerator() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brief: brief.trim(), tone, toneValue, useEmojis }),
+        body: JSON.stringify({ brief: brief.trim(), tone, toneValue, useEmojis, useTags }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -513,6 +514,34 @@ export default function PostGenerator() {
                   className={cn(
                     "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200",
                     useEmojis ? "translate-x-5" : "translate-x-0",
+                  )}
+                />
+              </button>
+            </div>
+
+            {/* Tags toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn("text-sm font-semibold", labelTx)}>Include Hashtags</p>
+                <p className={cn("text-xs mt-0.5", subTx)}>Add relevant tags at the end</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={useTags}
+                onClick={() => setUseTags((v) => !v)}
+                disabled={isLoading}
+                className={cn(
+                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  useTags ? "bg-[#0077B5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200",
+                    useTags ? "translate-x-5" : "translate-x-0",
                   )}
                 />
               </button>

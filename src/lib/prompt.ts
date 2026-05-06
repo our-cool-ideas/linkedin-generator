@@ -19,7 +19,7 @@ function styleNote(toneValue: number): string {
   return 'Voice: raw and human. Short punchy sentences. First-person, present tense when possible. Reads like a real person wrote this at 11pm because they had to get it out.'
 }
 
-function buildPrompt(tone: Tone, toneValue: number, useEmojis: boolean): string {
+function buildPrompt(tone: Tone, toneValue: number, useEmojis: boolean, useTags: boolean): string {
   return `You are a world-class LinkedIn ghostwriter. Your posts consistently break 50k impressions because you understand one thing: LinkedIn rewards specificity, honesty, and rhythm.
 
 ━━━ PARAMETERS ━━━
@@ -31,6 +31,10 @@ ${styleNote(toneValue)}
 Emojis: ${useEmojis
     ? 'Use 2–4 emojis maximum. Place them inline to add visual rhythm — not at the start of every line. Never use them as bullet points.'
     : 'No emojis. Clean text only.'}
+
+Hashtags: ${useTags
+    ? 'Add 3–5 relevant hashtags at the very end of the post on a new line. Choose tags that are specific and discoverable — mix 1 broad tag (#Leadership) with 2–3 niche ones (#ProductThinking, #FounderMindset). No generic tags like #Business or #Success.'
+    : 'No hashtags.'}
 
 ━━━ STRUCTURE ━━━
 
@@ -60,6 +64,6 @@ Do not summarize. Instead: ask a genuine question, share a contrarian take, or m
 `
 }
 
-export function buildDynamicPrompt(tone: Tone, toneValue: number, useEmojis: boolean): string {
-  return process.env.LINKEDIN_PROMPT ?? buildPrompt(tone, toneValue, useEmojis)
+export function buildDynamicPrompt(tone: Tone, toneValue: number, useEmojis: boolean, useTags: boolean): string {
+  return process.env.LINKEDIN_PROMPT ?? buildPrompt(tone, toneValue, useEmojis, useTags)
 }
