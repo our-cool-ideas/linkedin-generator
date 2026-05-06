@@ -12,6 +12,7 @@ export const GenerateRequestSchema = z.object({
     .number()
     .min(0)
     .max(100),
+  useEmojis: z.boolean(),
 })
 
 export type GenerateRequest = z.infer<typeof GenerateRequestSchema>

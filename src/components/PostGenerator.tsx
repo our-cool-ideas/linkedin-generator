@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type { GeneratorState, Tone } from "@/types";
 
 const MAX_BRIEF_LENGTH = 500;
-const MAX_POST_LENGTH = 3000; // LinkedIn's character limit
+const MAX_POST_LENGTH = 3000;
 const TONES: Tone[] = ["Analytical", "Actionable", "Inspirational"];
 
 // ── Icons ──────────────────────────────────────────────────────────────────
@@ -96,34 +96,35 @@ function LinkedInLogo({ className }: { className?: string }) {
 }
 
 // ── Markdown renderer for LinkedIn post ────────────────────────────────────
-// Converts markdown to styled spans — headings become bold lines, no block elements that break layout.
+// Root cause of spacing: whitespace-pre-wrap + ReactMarkdown block elements double-space.
+// Fix: pre-process single \n → markdown hard break (two trailing spaces + \n),
+// remove whitespace-pre-wrap, and let ReactMarkdown control all spacing via proper elements.
 
 function PostMarkdown({ content, className }: { content: string; className?: string }) {
+  // Convert single newlines to markdown hard breaks; leave \n\n paragraph breaks alone
+  const processed = content
+    .replace(/\r\n/g, "\n")
+    .replace(/(?<!\n)\n(?!\n)/g, "  \n");
+
   return (
-    <div className={cn("text-[14px] leading-[1.6] whitespace-pre-wrap break-words", className)}>
+    <div className={cn("text-[14px] leading-[1.6] break-words", className)}>
       <ReactMarkdown
         components={{
-          // Headings → bold paragraph-style text (strips the # literal)
-          h1: ({ children }) => <span className="block font-bold mb-1">{children}</span>,
-          h2: ({ children }) => <span className="block font-bold mb-1">{children}</span>,
-          h3: ({ children }) => <span className="block font-semibold mb-1">{children}</span>,
-          // Paragraphs → inline with spacing
-          p: ({ children }) => <span className="block mb-2 last:mb-0">{children}</span>,
+          h1: ({ children }) => <p className="font-bold mb-2">{children}</p>,
+          h2: ({ children }) => <p className="font-bold mb-2">{children}</p>,
+          h3: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
-          // Strip list bullets — LinkedIn posts rarely have true bullet lists
-          ul: ({ children }) => <span className="block">{children}</span>,
-          ol: ({ children }) => <span className="block">{children}</span>,
-          li: ({ children }) => <span className="block pl-2 before:content-['•'] before:mr-2">{children}</span>,
-          // Strip code blocks
-          code: ({ children }) => <span className="font-mono text-xs">{children}</span>,
-          // No horizontal rules
+          br: () => <br />,
+          ul: ({ children }) => <ul className="mb-2">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-2">{children}</ol>,
+          li: ({ children }) => <li className="ml-4 list-disc">{children}</li>,
           hr: () => null,
-          // Links — plain text
           a: ({ children }) => <span>{children}</span>,
         }}
       >
-        {content}
+        {processed}
       </ReactMarkdown>
     </div>
   );
@@ -324,6 +325,7 @@ export default function PostGenerator() {
   const [brief, setBrief] = useState("");
   const [tone, setTone] = useState<Tone>("Analytical");
   const [toneValue, setToneValue] = useState(40);
+  const [useEmojis, setUseEmojis] = useState(false);
   const [state, setState] = useState<GeneratorState>({ status: "idle" });
   const [copied, setCopied] = useState(false);
   const [previewView, setPreviewView] = useState<"desktop" | "mobile">("desktop");
@@ -343,7 +345,7 @@ export default function PostGenerator() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brief: brief.trim(), tone, toneValue }),
+        body: JSON.stringify({ brief: brief.trim(), tone, toneValue, useEmojis }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -486,6 +488,34 @@ export default function PostGenerator() {
                   accentColor: "#0077B5",
                 }}
               />
+            </div>
+
+            {/* Emoji toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn("text-sm font-semibold", labelTx)}>Include Emojis</p>
+                <p className={cn("text-xs mt-0.5", subTx)}>Add emojis to the post content</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={useEmojis}
+                onClick={() => setUseEmojis((v) => !v)}
+                disabled={isLoading}
+                className={cn(
+                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  useEmojis ? "bg-[#0077B5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200",
+                    useEmojis ? "translate-x-5" : "translate-x-0",
+                  )}
+                />
+              </button>
             </div>
 
             {/* Error */}

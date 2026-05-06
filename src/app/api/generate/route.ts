@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   let brief: string;
   let tone: "Analytical" | "Actionable" | "Inspirational";
   let toneValue: number;
+  let useEmojis: boolean;
   try {
     const body = await req.json();
     const parsed = GenerateRequestSchema.safeParse(body);
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
     brief = parsed.data.brief;
     tone = parsed.data.tone;
     toneValue = parsed.data.toneValue;
+    useEmojis = parsed.data.useEmojis;
   } catch {
     console.error(`[${timestamp}] PARSE_ERROR ip=${ip} status=400`);
     return NextResponse.json(
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
     const completion = await getOpenAI().chat.completions.create(
       {
         model: "poolside/laguna-xs.2:free",
-        messages: [{ role: "user", content: buildDynamicPrompt(tone, toneValue) + brief }],
+        messages: [{ role: "user", content: buildDynamicPrompt(tone, toneValue, useEmojis) + brief }],
       },
       { signal: controller.signal },
     );
