@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -299,8 +299,23 @@ function StepBadge({ n }: { n: number }) {
 
 // ── Main landing content ───────────────────────────────────────────────────
 
+const DARK_KEY = "postgen-dark";
+
 export default function LandingContent() {
   const [dark, setDark] = useState(false);
+
+  // Read persisted preference on mount
+  useEffect(() => {
+    if (localStorage.getItem(DARK_KEY) === "true") setDark(true);
+  }, []);
+
+  function toggleDark() {
+    setDark((d) => {
+      const next = !d;
+      localStorage.setItem(DARK_KEY, String(next));
+      return next;
+    });
+  }
 
   const pageBg   = dark ? "bg-[#0a0a0a]"   : "bg-white";
   const navBg    = dark ? "bg-[#0a0a0a] border-[#1e1e1e]" : "bg-white border-gray-100";
@@ -322,7 +337,7 @@ export default function LandingContent() {
         <div className="flex items-center gap-3">
           {/* Dark mode */}
           <button
-            onClick={() => setDark((d) => !d)}
+            onClick={toggleDark}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             className={cn(
               "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
