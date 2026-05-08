@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
   let toneValue: number;
   let useEmojis: boolean;
   let useTags: boolean;
+  let focusHook: boolean;
   try {
     const body = await req.json();
     const parsed = GenerateRequestSchema.safeParse(body);
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
     toneValue = parsed.data.toneValue;
     useEmojis = parsed.data.useEmojis;
     useTags = parsed.data.useTags;
+    focusHook = parsed.data.focusHook;
   } catch {
     console.error(`[${timestamp}] PARSE_ERROR ip=${ip} status=400`);
     return NextResponse.json(
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
   try {
-    const { system, user } = buildDynamicPrompt(tone, toneValue, useEmojis, useTags);
+    const { system, user } = buildDynamicPrompt(tone, toneValue, useEmojis, useTags, focusHook);
     const completion = await getOpenAI().chat.completions.create(
       {
         model: "poolside/laguna-xs.2:free",
