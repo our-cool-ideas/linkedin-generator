@@ -38,7 +38,12 @@ export function buildUserMessage(
   toneValue: number,
   useEmojis: boolean,
   useTags: boolean,
+  focusHook: boolean,
 ): string {
+  const hookRule = focusHook
+    ? `Hook emphasis: MAXIMUM. Spend most of your creative effort on the first 1-2 lines. Write 3 different hook options internally, pick the sharpest one, and discard the rest. The hook must create an immediate, visceral reaction — curiosity, surprise, or mild discomfort. It should be impossible to read without wanting to know what comes next. The body and close can be tighter/shorter to give the hook more weight.`
+    : `Hook emphasis: standard. Write a strong hook that earns the "see more" tap, but balance it equally with a solid body and close.`
+
   const emojiRule = useEmojis
     ? `EMOJIS: YES. You MUST include 2-4 emojis placed inline within sentences for rhythm. Do not use them as line-openers or bullet points.`
     : `EMOJIS: NO. Do not use any emojis.`
@@ -50,12 +55,14 @@ export function buildUserMessage(
   return `TONE: ${tone} — ${TONE_INSTRUCTIONS[tone]}
 VOICE: ${styleNote(toneValue)}
 
+${hookRule}
+
 ${emojiRule}
 ${tagRule}
 
 BRIEF: ${brief}
 
-REMINDER: ${useEmojis ? 'Include 2-4 emojis inline.' : 'No emojis.'} ${useTags ? 'End with 3-5 hashtags on their own line after a blank line.' : 'No hashtags.'} Return only the post text.`
+REMINDER: ${focusHook ? 'Make the hook exceptional — it carries the whole post.' : 'Balance hook, body, and close.'} ${useEmojis ? 'Include 2-4 emojis inline.' : 'No emojis.'} ${useTags ? 'End with 3-5 hashtags on their own line after a blank line.' : 'No hashtags.'} Return only the post text.`
 }
 
 export function buildDynamicPrompt(
@@ -63,9 +70,10 @@ export function buildDynamicPrompt(
   toneValue: number,
   useEmojis: boolean,
   useTags: boolean,
+  focusHook: boolean,
 ): { system: string; user: (brief: string) => string } {
   return {
     system: process.env.LINKEDIN_PROMPT ?? SYSTEM_PROMPT,
-    user: (brief: string) => buildUserMessage(brief, tone, toneValue, useEmojis, useTags),
+    user: (brief: string) => buildUserMessage(brief, tone, toneValue, useEmojis, useTags, focusHook),
   }
 }

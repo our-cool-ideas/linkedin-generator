@@ -371,6 +371,7 @@ export default function PostGenerator() {
   const [toneValue, setToneValue] = useState(40);
   const [useEmojis, setUseEmojis] = useState(false);
   const [useTags, setUseTags] = useState(false);
+  const [focusHook, setFocusHook] = useState(false);
   const [state, setState] = useState<GeneratorState>({ status: "idle" });
   const [copied, setCopied] = useState(false);
   const [previewView, setPreviewView] = useState<"desktop" | "mobile">("desktop");
@@ -411,7 +412,7 @@ export default function PostGenerator() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brief: brief.trim(), tone, toneValue, useEmojis, useTags }),
+        body: JSON.stringify({ brief: brief.trim(), tone, toneValue, useEmojis, useTags, focusHook }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -623,6 +624,15 @@ export default function PostGenerator() {
                   accentColor: "#0077B5",
                 }}
               />
+            </div>
+
+            {/* Hook focus toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={cn("text-sm font-semibold", labelTx)}>Emphasize Hook</p>
+                <p className={cn("text-xs mt-0.5", subTx)}>Max effort on the opening lines</p>
+              </div>
+              <Toggle checked={focusHook} onChange={() => setFocusHook((v) => !v)} disabled={isLoading} dark={dark} />
             </div>
 
             {/* Emoji toggle */}
