@@ -373,8 +373,15 @@ type LinkedInStatus =
   | { status: "posted" }
   | { status: "post_error"; message: string };
 
+const DARK_KEY = "postgen-dark";
+
 export default function PostGenerator() {
   const [dark, setDark] = useState(false);
+
+  // Read persisted preference on mount
+  useEffect(() => {
+    if (localStorage.getItem(DARK_KEY) === "true") setDark(true);
+  }, []);
   const [brief, setBrief] = useState("");
   const [tone, setTone] = useState<Tone>("Analytical");
   const [toneValue, setToneValue] = useState(40);
@@ -542,7 +549,13 @@ export default function PostGenerator() {
 
           {/* Dark mode toggle */}
           <button
-            onClick={() => setDark((d) => !d)}
+            onClick={() => {
+              setDark((d) => {
+                const next = !d;
+                localStorage.setItem(DARK_KEY, String(next));
+                return next;
+              });
+            }}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             className={cn(
               "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
