@@ -471,15 +471,22 @@ export default function PostGenerator() {
   }
 
   // Theme tokens
-  const pageBg   = dark ? "bg-[#0a0a0a]"       : "bg-gray-100";
-  const headerBg = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-white border-gray-200";
-  const cardBg   = dark ? "bg-[#111318] border-[#2a2a2a]" : "bg-white border-gray-200";
-  const labelTx  = dark ? "text-gray-100"       : "text-gray-900";
-  const subTx    = dark ? "text-gray-400"       : "text-gray-500";
-  const inputCls = dark
+  const pageBg    = dark ? "bg-[#0a0a0a]"        : "bg-[#f0f2f5]";
+  const headerBg  = dark ? "bg-[#0a0a0a] border-[#2a2a2a] shadow-[0_1px_6px_rgba(0,0,0,0.35)]"
+                         : "bg-white border-gray-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)]";
+  const cardBg    = dark ? "bg-[#111318] border-[#2a2a2a] shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+                         : "bg-white border-gray-200 shadow-[0_4px_24px_rgba(0,0,0,0.07)]";
+  const sectionBg = dark ? "bg-[#0d1117] border border-[#2a2a2a] rounded-xl p-4"
+                         : "bg-gray-50 border border-gray-100 rounded-xl p-4";
+  const dividerCls = dark ? "border-[#2a2a2a]" : "border-gray-100";
+  const labelTx   = dark ? "text-gray-100"        : "text-gray-900";
+  const sectionLabelTx = dark ? "text-[10px] font-semibold uppercase tracking-widest text-gray-500"
+                               : "text-[10px] font-semibold uppercase tracking-widest text-gray-400";
+  const subTx     = dark ? "text-gray-400"        : "text-gray-500";
+  const inputCls  = dark
     ? "bg-[#1b1f23] border-[#38434f] text-gray-100 placeholder-gray-600 focus:ring-[#0077B5]"
-    : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-[#0077B5]";
-  const footerBg = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-gray-100 border-gray-200";
+    : "bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-[#0077B5]";
+  const footerBg  = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-[#f0f2f5] border-gray-200";
 
   const liConnected = li.status === "connected";
   const liPosting   = li.status === "posting";
@@ -544,13 +551,11 @@ export default function PostGenerator() {
         <div className="mx-auto max-w-6xl flex flex-col lg:flex-row gap-6">
 
           {/* ── Left panel ── */}
-          <div className={cn("w-full lg:w-[440px] lg:flex-shrink-0 rounded-xl border p-6 space-y-6", cardBg)}>
+          <div className={cn("w-full lg:w-[440px] lg:flex-shrink-0 rounded-xl border overflow-hidden", cardBg)}>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <label htmlFor="brief" className={cn("block text-sm font-semibold", labelTx)}>
-                Post Description
-              </label>
+            {/* ── Section: Post Description ── */}
+            <div className="px-5 pt-5 pb-4 space-y-2">
+              <p className={sectionLabelTx}>Post Description</p>
               <textarea
                 ref={textareaRef}
                 id="brief"
@@ -558,144 +563,152 @@ export default function PostGenerator() {
                 onChange={(e) => setBrief(e.target.value.slice(0, MAX_BRIEF_LENGTH))}
                 disabled={isLoading}
                 placeholder="Describe your post idea or key points..."
-                rows={7}
+                rows={6}
                 maxLength={MAX_BRIEF_LENGTH}
                 className={cn(
                   "w-full rounded-lg border px-3 py-2.5 text-sm resize-none transition-colors",
                   "focus:outline-none focus:ring-2 focus:border-transparent",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   inputCls,
-                  isAtLimit && "border-red-400",
+                  isAtLimit && "!border-red-400",
                 )}
               />
               <p className={cn("text-xs text-right tabular-nums", isAtLimit ? "text-red-500" : subTx)}>
-                {brief.length}/{MAX_BRIEF_LENGTH}
+                {brief.length} / {MAX_BRIEF_LENGTH}
               </p>
             </div>
 
-            {/* Tone dropdown */}
-            <div className="space-y-2">
-              <label htmlFor="tone" className={cn("block text-sm font-semibold", labelTx)}>
-                Select Tone
-              </label>
-              <div className="relative">
-                <select
-                  id="tone"
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value as Tone)}
-                  disabled={isLoading}
-                  className={cn(
-                    "w-full rounded-lg border px-3 py-2.5 text-sm appearance-none cursor-pointer transition-colors",
-                    "focus:outline-none focus:ring-2 focus:border-transparent",
-                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                    dark
-                      ? "bg-[#1b1f23] border-[#38434f] text-gray-100 focus:ring-[#0077B5]"
-                      : "bg-white border-gray-300 text-gray-900 focus:ring-[#0077B5]",
-                  )}
-                  style={{ paddingRight: "2.5rem" }}
-                >
-                  {TONES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <span className={cn("pointer-events-none absolute right-3 top-1/2 -translate-y-1/2", subTx)}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </span>
+            {/* ── Divider ── */}
+            <div className={cn("border-t mx-5", dividerCls)} />
+
+            {/* ── Section: Tone & Style ── */}
+            <div className="px-5 py-4 space-y-4">
+              <p className={sectionLabelTx}>Tone &amp; Style</p>
+
+              {/* Tone dropdown */}
+              <div className={sectionBg}>
+                <div className="space-y-2">
+                  <label htmlFor="tone" className={cn("block text-xs font-medium", subTx)}>
+                    Voice
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="tone"
+                      value={tone}
+                      onChange={(e) => setTone(e.target.value as Tone)}
+                      disabled={isLoading}
+                      className={cn(
+                        "w-full rounded-lg border px-3 py-2 text-sm appearance-none cursor-pointer transition-colors",
+                        "focus:outline-none focus:ring-2 focus:border-transparent",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                        dark
+                          ? "bg-[#111318] border-[#38434f] text-gray-100 focus:ring-[#0077B5]"
+                          : "bg-white border-gray-200 text-gray-900 focus:ring-[#0077B5]",
+                      )}
+                      style={{ paddingRight: "2.5rem" }}
+                    >
+                      {TONES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <span className={cn("pointer-events-none absolute right-3 top-1/2 -translate-y-1/2", subTx)}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <div className={cn("border-t mt-4 pt-4", dividerCls)}>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span className={subTx}>More Human</span>
+                    <span className={cn("font-medium tabular-nums", labelTx)}>{toneValue}</span>
+                    <span className={subTx}>More Professional</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={toneValue}
+                    onChange={(e) => setToneValue(Number(e.target.value))}
+                    disabled={isLoading}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed"
+                    style={{
+                      background: `linear-gradient(to right, #0077B5 ${toneValue}%, ${dark ? "#38434f" : "#e5e7eb"} ${toneValue}%)`,
+                      accentColor: "#0077B5",
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Slider */}
-            <div className="space-y-2">
-              <p className={cn("text-sm font-semibold", labelTx)}>Professional vs. Human Tone</p>
-              <div className="flex justify-between text-xs">
-                <span className={subTx}>More Human</span>
-                <span className={subTx}>More Professional</span>
+            {/* ── Divider ── */}
+            <div className={cn("border-t mx-5", dividerCls)} />
+
+            {/* ── Section: Post Options ── */}
+            <div className="px-5 py-4 space-y-3">
+              <p className={sectionLabelTx}>Post Options</p>
+              <div className={cn(sectionBg, "space-y-0 divide-y", dark ? "divide-[#2a2a2a]" : "divide-gray-100")}>
+                {([
+                  { label: "Emphasize Hook",    desc: "Max effort on opening lines", checked: focusHook,  set: setFocusHook  },
+                  { label: "Include Emojis",    desc: "Add emojis to the content",   checked: useEmojis,  set: setUseEmojis  },
+                  { label: "Include Hashtags",  desc: "Add relevant tags at the end",checked: useTags,    set: setUseTags    },
+                ] as const).map(({ label, desc, checked, set }) => (
+                  <div key={label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                    <div>
+                      <p className={cn("text-sm font-medium", labelTx)}>{label}</p>
+                      <p className={cn("text-xs mt-0.5", subTx)}>{desc}</p>
+                    </div>
+                    <Toggle checked={checked} onChange={() => set((v) => !v)} disabled={isLoading} dark={dark} />
+                  </div>
+                ))}
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={toneValue}
-                onChange={(e) => setToneValue(Number(e.target.value))}
-                disabled={isLoading}
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed"
-                style={{
-                  background: `linear-gradient(to right, #0077B5 ${toneValue}%, ${dark ? "#38434f" : "#e5e7eb"} ${toneValue}%)`,
-                  accentColor: "#0077B5",
-                }}
-              />
             </div>
 
-            {/* Hook focus toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={cn("text-sm font-semibold", labelTx)}>Emphasize Hook</p>
-                <p className={cn("text-xs mt-0.5", subTx)}>Max effort on the opening lines</p>
-              </div>
-              <Toggle checked={focusHook} onChange={() => setFocusHook((v) => !v)} disabled={isLoading} dark={dark} />
-            </div>
+            {/* ── Divider ── */}
+            <div className={cn("border-t mx-5", dividerCls)} />
 
-            {/* Emoji toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={cn("text-sm font-semibold", labelTx)}>Include Emojis</p>
-                <p className={cn("text-xs mt-0.5", subTx)}>Add emojis to the post content</p>
-              </div>
-              <Toggle checked={useEmojis} onChange={() => setUseEmojis((v) => !v)} disabled={isLoading} dark={dark} />
-            </div>
-
-            {/* Tags toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={cn("text-sm font-semibold", labelTx)}>Include Hashtags</p>
-                <p className={cn("text-xs mt-0.5", subTx)}>Add relevant tags at the end</p>
-              </div>
-              <Toggle checked={useTags} onChange={() => setUseTags((v) => !v)} disabled={isLoading} dark={dark} />
-            </div>
-
-            {/* Error */}
-            {state.status === "error" && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                {state.message}
-              </div>
-            )}
-
-            {/* Generate */}
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={!canSubmit}
-              className={cn(
-                "w-full rounded-xl py-3 text-sm font-semibold text-white transition-colors",
-                "bg-[#0077B5] hover:bg-[#005e8e] active:bg-[#004f79]",
-                "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
-                "disabled:opacity-40 disabled:cursor-not-allowed",
+            {/* ── Footer: error + generate ── */}
+            <div className="px-5 py-4 space-y-3">
+              {state.status === "error" && (
+                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                  {state.message}
+                </div>
               )}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Generating…
-                </span>
-              ) : "Generate Post"}
-            </button>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={!canSubmit}
+                className={cn(
+                  "w-full rounded-xl py-3 text-sm font-semibold text-white transition-colors shadow-sm",
+                  "bg-[#0077B5] hover:bg-[#005e8e] active:bg-[#004f79]",
+                  "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
+                  "disabled:opacity-40 disabled:cursor-not-allowed",
+                )}
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Generating…
+                  </span>
+                ) : "Generate Post"}
+              </button>
+            </div>
           </div>
 
           {/* ── Right panel ── */}
           <div className={cn("flex-1 min-w-0 rounded-xl border overflow-hidden", cardBg)}>
 
             {/* Panel header */}
-            <div className="flex items-center justify-between px-6 pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <p className={cn("text-sm font-semibold", labelTx)}>Preview</p>
+            <div className={cn("flex items-center justify-between px-5 py-3 border-b", dividerCls, dark ? "bg-[#0d1117]" : "bg-gray-50")}>
+              <div className="flex items-center gap-2.5">
+                <p className={sectionLabelTx}>Preview</p>
                 {state.status === "success" && (
                   <span className={cn(
-                    "text-xs tabular-nums font-medium px-2 py-0.5 rounded-full",
+                    "text-[10px] tabular-nums font-semibold px-2 py-0.5 rounded-full",
                     postOverLimit
                       ? "bg-amber-100 text-amber-700"
                       : "bg-green-100 text-green-700",
                   )}>
-                    {postCharCount.toLocaleString()} / {MAX_POST_LENGTH.toLocaleString()} chars
+                    {postCharCount.toLocaleString()} / {MAX_POST_LENGTH.toLocaleString()}
                   </span>
                 )}
               </div>
@@ -705,7 +718,7 @@ export default function PostGenerator() {
                     key={v}
                     onClick={() => setPreviewView(v)}
                     className={cn(
-                      "px-5 py-2 text-sm font-medium transition-colors capitalize",
+                      "px-4 py-1.5 text-xs font-semibold transition-colors capitalize",
                       previewView === v
                         ? "bg-[#0077B5] text-white"
                         : dark
@@ -720,7 +733,7 @@ export default function PostGenerator() {
             </div>
 
             {/* Preview body */}
-            <div className="px-6 pb-6">
+            <div className="px-5 py-5">
               <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
                 {state.status === "success" ? "Your LinkedIn post is ready." : ""}
               </div>
