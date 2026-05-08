@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import type { GeneratorState, Tone } from "@/types";
@@ -87,21 +88,32 @@ function IconSend() {
   );
 }
 
-function LinkedInLogo({ className }: { className?: string }) {
+// Reaction bubbles — authentic LinkedIn look; keep LinkedIn's own brand blue here
+function ReactionLike() {
   return (
-    <svg viewBox="0 0 24 24" fill="white" className={className}>
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-    </svg>
+    <span className="inline-flex w-[18px] h-[18px] rounded-full items-center justify-center ring-[1.5px] ring-white text-[10px] bg-[#0077B5]">
+      👍
+    </span>
+  );
+}
+function ReactionLove() {
+  return (
+    <span className="inline-flex w-[18px] h-[18px] rounded-full items-center justify-center ring-[1.5px] ring-white text-[10px] bg-[#e0245e]">
+      ❤️
+    </span>
+  );
+}
+function ReactionInsightful() {
+  return (
+    <span className="inline-flex w-[18px] h-[18px] rounded-full items-center justify-center ring-[1.5px] ring-white text-[10px] bg-[#f5a623]">
+      💡
+    </span>
   );
 }
 
-// ── Markdown renderer for LinkedIn post ────────────────────────────────────
-// Root cause of spacing: whitespace-pre-wrap + ReactMarkdown block elements double-space.
-// Fix: pre-process single \n → markdown hard break (two trailing spaces + \n),
-// remove whitespace-pre-wrap, and let ReactMarkdown control all spacing via proper elements.
+// ── Markdown renderer ──────────────────────────────────────────────────────
 
 function PostMarkdown({ content, className }: { content: string; className?: string }) {
-  // Convert single newlines to markdown hard breaks; leave \n\n paragraph breaks alone
   const processed = content
     .replace(/\r\n/g, "\n")
     .replace(/(?<!\n)\n(?!\n)/g, "  \n");
@@ -130,7 +142,7 @@ function PostMarkdown({ content, className }: { content: string; className?: str
   );
 }
 
-// ── LinkedIn card ─────────────────────────────────────────────────────────
+// ── LinkedIn preview card — uses system-ui to emulate LinkedIn's own font ──
 
 const TRUNCATE_CHARS = 300;
 
@@ -143,126 +155,115 @@ function LinkedInCard({ post, mobile, dark }: { post: string; mobile: boolean; d
     setExpanded(false);
   }, [post]);
 
-  // Strip markdown for plain-text length check
   const plainText = post.replace(/#{1,6}\s?/g, "").replace(/\*\*/g, "").replace(/\*/g, "");
   const isLong = plainText.length > TRUNCATE_CHARS;
-  const showFull = expanded || !isLong;
-
-  // For the truncated view, cut the raw markdown at approx char boundary
-  const truncatedPost = isLong && !expanded
-    ? post.slice(0, TRUNCATE_CHARS)
-    : post;
-
+  const truncatedPost = isLong && !expanded ? post.slice(0, TRUNCATE_CHARS) : post;
   const overLimit = post.length > MAX_POST_LENGTH;
 
-  const bg = dark ? "bg-[#1d2226]" : "bg-white";
-  const border = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
-  const nameTx = dark ? "text-[#e8e8e3]" : "text-[#000000e6]";
-  const metaTx = dark ? "text-[#a8a09b]" : "text-[#00000099]";
-  const bodyTx = dark ? "text-[#e8e8e3]" : "text-[#000000e6]";
-  const divider = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
-  const actionTx = dark ? "text-[#a8a09b] hover:bg-[#ffffff12]" : "text-[#00000099] hover:bg-[#0000000d]";
+  const bg       = dark ? "bg-[#1d2226]"    : "bg-white";
+  const border   = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const nameTx   = dark ? "text-[#e8e8e3]"  : "text-[#000000e6]";
+  const metaTx   = dark ? "text-[#a8a09b]"  : "text-[#00000099]";
+  const bodyTx   = dark ? "text-[#e8e8e3]"  : "text-[#000000e6]";
+  const divider  = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const ringCol  = dark ? "ring-[#1d2226]"   : "ring-white";
+  const actionTx = dark
+    ? "text-[#a8a09b] hover:bg-[#ffffff12] hover:text-[#e8e8e3]"
+    : "text-[#00000099] hover:bg-[#0000000d] hover:text-[#000000e6]";
 
   return (
-    <div className={cn("rounded-lg border overflow-hidden mx-auto font-[system-ui,-apple-system,sans-serif]", bg, border, mobile ? "max-w-[375px]" : "w-full")}>
-
-      {/* ── Post header ── */}
+    <div className={cn(
+      "rounded-lg border overflow-hidden mx-auto font-[system-ui,-apple-system,sans-serif]",
+      bg, border, mobile ? "max-w-[375px]" : "w-full",
+    )}>
+      {/* Post header */}
       <div className="px-4 pt-3 pb-2 flex items-start gap-2">
-        {/* Avatar */}
-        <div className="relative flex-shrink-0">
-          <div className={cn("w-12 h-12 rounded-full flex items-center justify-center overflow-hidden", dark ? "bg-[#38434f] text-[#a8a09b]" : "bg-[#c0c0c0] text-[#ffffff]")}>
-            <IconPerson />
-          </div>
-          {/* LinkedIn badge */}
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-sm bg-[#0077B5] flex items-center justify-center">
-            <LinkedInLogo className="w-3 h-3" />
-          </div>
+        <div className={cn(
+          "w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0",
+          dark ? "bg-[#38434f] text-[#a8a09b]" : "bg-[#c0c0c0] text-white",
+        )}>
+          <IconPerson />
         </div>
-
-        {/* Meta */}
-        <div className="flex-1 min-w-0 ml-1">
-          <div className="flex items-center gap-1.5">
-            <p className={cn("text-sm font-semibold leading-tight", nameTx)}>Your Name</p>
+        <div className="flex-1 min-w-0 ml-0.5">
+          <div className="flex items-baseline gap-1">
+            <p className={cn("text-[13px] font-semibold leading-snug", nameTx)}>Your Name</p>
             <span className={cn("text-xs", metaTx)}>• 1st</span>
           </div>
-          <p className={cn("text-xs leading-tight mt-0.5 truncate", metaTx)}>Your Professional Headline · Company</p>
-          <div className={cn("flex items-center gap-1 text-xs mt-0.5", metaTx)}>
+          <p className={cn("text-[12px] leading-snug mt-0.5 truncate", metaTx)}>
+            Your Professional Headline · Company
+          </p>
+          <div className={cn("flex items-center gap-1 text-[11px] mt-0.5", metaTx)}>
             <span>Just now</span>
             <span>·</span>
             <IconGlobe />
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-          <button className={cn("text-[#0077B5] text-sm font-semibold px-3 py-1 rounded-full border border-[#0077B5] hover:bg-[#0077B5]/10 transition-colors", dark && "border-[#70b5f9] text-[#70b5f9]")}>
-            Follow
+        <div className="flex items-center gap-0.5 ml-2 flex-shrink-0">
+          {/* Keep LinkedIn's own blue for the Follow button — it's a brand element of the preview */}
+          <button className={cn(
+            "text-[#0077B5] text-[13px] font-semibold px-3 py-1 rounded-full border border-[#0077B5]",
+            "hover:bg-[#0077B5]/10 transition-colors",
+            dark && "border-[#70b5f9] text-[#70b5f9]",
+          )}>
+            + Follow
           </button>
-          <button className={cn("p-1 rounded-full transition-colors", actionTx)}>
+          <button className={cn("w-8 h-8 flex items-center justify-center rounded-full transition-colors", actionTx)}>
             <IconDots />
           </button>
         </div>
       </div>
 
-      {/* ── Post body ── */}
+      {/* Post body */}
       <div className="px-4 pb-3">
-        {/* Character limit warning */}
         {overLimit && (
-          <div className="mb-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-            ⚠ This post exceeds LinkedIn&apos;s {MAX_POST_LENGTH.toLocaleString()} character limit
+          <div className="mb-2 text-xs text-amber-600 font-medium">
+            ⚠ Exceeds LinkedIn&apos;s {MAX_POST_LENGTH.toLocaleString()} character limit
           </div>
         )}
-
         <PostMarkdown content={truncatedPost} className={bodyTx} />
-
         {isLong && !expanded && (
           <button
             onClick={() => setExpanded(true)}
-            className={cn("text-sm font-semibold mt-0.5", metaTx, "hover:underline")}
+            className={cn("text-[13px] font-semibold mt-0.5", metaTx, "hover:underline")}
           >
             …see more
           </button>
         )}
       </div>
 
-      {/* ── Reactions summary ── */}
-      <div className={cn("px-4 py-1.5 flex items-center justify-between border-t", divider)}>
-        <div className="flex items-center gap-1">
-          <span className="flex -space-x-0.5">
-            <span className="text-sm">👍</span>
-            <span className="text-sm">❤️</span>
-            <span className="text-sm">💡</span>
+      {/* Reactions */}
+      <div className={cn("px-4 py-1.5 flex items-center justify-between", metaTx)}>
+        <div className="flex items-center gap-1.5">
+          <span className="flex items-center">
+            <span className={cn("relative z-30", ringCol)}><ReactionLike /></span>
+            <span className={cn("relative z-20 -ml-1", ringCol)}><ReactionLove /></span>
+            <span className={cn("relative z-10 -ml-1", ringCol)}><ReactionInsightful /></span>
           </span>
-          <span className={cn("text-xs ml-1", metaTx)}>{liked ? "You and 247 others" : "247"}</span>
+          <span className={cn("text-xs hover:underline cursor-pointer", metaTx)}>
+            {liked ? "You and 247 others" : "247"}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button className={cn("text-xs hover:underline", metaTx)}>38 comments</button>
-          <span className={cn("text-xs", metaTx)}>·</span>
-          <button className={cn("text-xs hover:underline", metaTx)}>12 reposts</button>
+        <div className={cn("flex items-center gap-1 text-xs", metaTx)}>
+          <button className="hover:underline hover:text-[#0077B5]">38 comments</button>
+          <span className="mx-0.5">·</span>
+          <button className="hover:underline hover:text-[#0077B5]">12 reposts</button>
         </div>
       </div>
 
-      {/* ── Action buttons ── */}
-      <div className={cn("px-2 py-0.5 flex items-center border-t", divider)}>
-        {[
-          {
-            icon: <IconThumbUp filled={liked} />,
-            label: "Like",
-            active: liked,
-            onClick: () => setLiked((l) => !l),
-          },
-          { icon: <IconMessageCircle />, label: "Comment", onClick: () => {} },
-          { icon: <IconRepeat />, label: "Repost", onClick: () => {} },
-          { icon: <IconSend />, label: "Send", onClick: () => {} },
-        ].map(({ icon, label, active, onClick }) => (
+      {/* Action buttons */}
+      <div className={cn("border-t flex items-center", divider)}>
+        {([
+          { icon: <IconThumbUp filled={liked} />, label: "Like",    active: liked, onClick: () => setLiked((l) => !l) },
+          { icon: <IconMessageCircle />,          label: "Comment", active: false, onClick: () => {} },
+          { icon: <IconRepeat />,                 label: "Repost",  active: false, onClick: () => {} },
+          { icon: <IconSend />,                   label: "Send",    active: false, onClick: () => {} },
+        ]).map(({ icon, label, active, onClick }) => (
           <button
             key={label}
             onClick={onClick}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold transition-colors",
+              "flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-semibold transition-colors",
               active ? "text-[#0077B5]" : actionTx,
-              mobile && label !== "Like" && "hidden",
-              mobile && "first:flex",
             )}
           >
             {icon}
@@ -275,41 +276,49 @@ function LinkedInCard({ post, mobile, dark }: { post: string; mobile: boolean; d
 }
 
 function EmptyLinkedInCard({ dark }: { dark: boolean }) {
-  const bg = dark ? "bg-[#1d2226]" : "bg-white";
-  const border = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
-  const nameTx = dark ? "text-[#e8e8e3]" : "text-[#000000e6]";
-  const metaTx = dark ? "text-[#a8a09b]" : "text-[#00000099]";
+  const bg      = dark ? "bg-[#1d2226]"    : "bg-white";
+  const border  = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
+  const nameTx  = dark ? "text-[#e8e8e3]"  : "text-[#000000e6]";
+  const metaTx  = dark ? "text-[#a8a09b]"  : "text-[#00000099]";
   const divider = dark ? "border-[#38434f]" : "border-[#e0dfdf]";
-  const actionTx = dark ? "text-[#a8a09b]" : "text-[#00000060]";
+  const ringCol = dark ? "ring-[#1d2226]"   : "ring-white";
+  const actionTx = dark ? "text-[#a8a09b]"  : "text-[#00000060]";
 
   return (
     <div className={cn("rounded-lg border overflow-hidden w-full font-[system-ui,-apple-system,sans-serif]", bg, border)}>
       <div className="px-4 pt-3 pb-2 flex items-start gap-2">
-        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 relative", dark ? "bg-[#38434f] text-[#a8a09b]" : "bg-[#c0c0c0] text-white")}>
+        <div className={cn(
+          "w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0",
+          dark ? "bg-[#38434f] text-[#a8a09b]" : "bg-[#c0c0c0] text-white",
+        )}>
           <IconPerson />
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-sm bg-[#0077B5] flex items-center justify-center">
-            <LinkedInLogo className="w-3 h-3" />
-          </div>
         </div>
-        <div className="flex-1 ml-1">
-          <div className="flex items-center gap-1.5">
-            <p className={cn("text-sm font-semibold", nameTx)}>Your Name</p>
+        <div className="flex-1 ml-0.5">
+          <div className="flex items-baseline gap-1">
+            <p className={cn("text-[13px] font-semibold", nameTx)}>Your Name</p>
             <span className={cn("text-xs", metaTx)}>• 1st</span>
           </div>
-          <p className={cn("text-xs mt-0.5", metaTx)}>Your Headline · Company</p>
-          <div className={cn("flex items-center gap-1 text-xs mt-0.5", metaTx)}>
+          <p className={cn("text-[12px] mt-0.5", metaTx)}>Your Headline · Company</p>
+          <div className={cn("flex items-center gap-1 text-[11px] mt-0.5", metaTx)}>
             <span>Just now</span><span>·</span><IconGlobe />
           </div>
         </div>
       </div>
-
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-5">
         <p className={cn("text-sm", metaTx)}>Your generated LinkedIn post will appear here...</p>
       </div>
-
-      <div className={cn("px-2 py-0.5 flex items-center border-t", divider)}>
-        {["Like", "Comment", "Repost", "Send"].map((label) => (
-          <button key={label} disabled className={cn("flex-1 py-2.5 text-xs font-semibold", actionTx)}>
+      <div className={cn("px-4 py-1.5 flex items-center gap-1.5", metaTx)}>
+        <span className="flex items-center opacity-40">
+          <span className={cn("relative z-30", ringCol)}><ReactionLike /></span>
+          <span className={cn("relative z-20 -ml-1", ringCol)}><ReactionLove /></span>
+          <span className={cn("relative z-10 -ml-1", ringCol)}><ReactionInsightful /></span>
+        </span>
+        <span className="text-xs opacity-40">247</span>
+        <span className="ml-auto text-xs opacity-40">38 comments · 12 reposts</span>
+      </div>
+      <div className={cn("border-t flex items-center", divider)}>
+        {(["Like", "Comment", "Repost", "Send"] as const).map((label) => (
+          <button key={label} disabled className={cn("flex-1 py-3 text-xs font-semibold opacity-40", actionTx)}>
             {label}
           </button>
         ))}
@@ -318,7 +327,7 @@ function EmptyLinkedInCard({ dark }: { dark: boolean }) {
   );
 }
 
-// ── Toggle switch shared component ─────────────────────────────────────────
+// ── Toggle ─────────────────────────────────────────────────────────────────
 
 function Toggle({
   checked,
@@ -340,9 +349,9 @@ function Toggle({
       disabled={disabled}
       className={cn(
         "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-        "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
+        "focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-2",
         "disabled:opacity-50 disabled:cursor-not-allowed",
-        checked ? "bg-[#0077B5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
+        checked ? "bg-[#4f46e5]" : dark ? "bg-[#38434f]" : "bg-gray-200",
       )}
     >
       <span
@@ -387,7 +396,6 @@ export default function PostGenerator() {
     : 0;
   const postOverLimit = postCharCount > MAX_POST_LENGTH;
 
-  // Check LinkedIn connection on mount and after returning from OAuth
   useEffect(() => {
     fetch("/api/auth/linkedin/status")
       .then((r) => r.json())
@@ -396,7 +404,6 @@ export default function PostGenerator() {
       })
       .catch(() => {});
 
-    // Show error from OAuth redirect query param
     const params = new URLSearchParams(window.location.search);
     const liError = params.get("li_error");
     if (liError) {
@@ -420,7 +427,6 @@ export default function PostGenerator() {
         return;
       }
       setState({ status: "success", post: data.post });
-      // Reset any previous post status when a new post is generated
       if (li.status === "posted" || li.status === "post_error") {
         setLi({ status: "connected", name: (li as { name?: string }).name ?? "" });
       }
@@ -455,7 +461,7 @@ export default function PostGenerator() {
       if (!res.ok) {
         const name = li.status === "connected" ? li.name : "";
         if (res.status === 401) {
-          setLi({ status: "idle" }); // token expired, force reconnect
+          setLi({ status: "idle" });
         } else {
           setLi({ status: "post_error", message: data.error ?? "Failed to post." });
           setTimeout(() => setLi({ status: "connected", name }), 4000);
@@ -470,23 +476,27 @@ export default function PostGenerator() {
     }
   }
 
-  // Theme tokens
-  const pageBg    = dark ? "bg-[#0a0a0a]"        : "bg-[#f0f2f5]";
-  const headerBg  = dark ? "bg-[#0a0a0a] border-[#2a2a2a] shadow-[0_1px_6px_rgba(0,0,0,0.35)]"
-                         : "bg-white border-gray-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)]";
-  const cardBg    = dark ? "bg-[#111318] border-[#2a2a2a] shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
-                         : "bg-white border-gray-200 shadow-[0_4px_24px_rgba(0,0,0,0.07)]";
-  const sectionBg = dark ? "bg-[#0d1117] border border-[#2a2a2a] rounded-xl p-4"
-                         : "bg-gray-50 border border-gray-100 rounded-xl p-4";
-  const dividerCls = dark ? "border-[#2a2a2a]" : "border-gray-100";
-  const labelTx   = dark ? "text-gray-100"        : "text-gray-900";
-  const sectionLabelTx = dark ? "text-[10px] font-semibold uppercase tracking-widest text-gray-500"
-                               : "text-[10px] font-semibold uppercase tracking-widest text-gray-400";
-  const subTx     = dark ? "text-gray-400"        : "text-gray-500";
-  const inputCls  = dark
-    ? "bg-[#1b1f23] border-[#38434f] text-gray-100 placeholder-gray-600 focus:ring-[#0077B5]"
-    : "bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-[#0077B5]";
-  const footerBg  = dark ? "bg-[#0a0a0a] border-[#2a2a2a]" : "bg-[#f0f2f5] border-gray-200";
+  // ── Theme tokens — light mode now matches the landing page palette ──
+  const pageBg     = dark ? "bg-[#0a0a0a]"   : "bg-[#f8fafc]";
+  const headerBg   = dark
+    ? "bg-[#0a0a0a] border-[#1e1e1e] shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
+    : "bg-white border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]";
+  const cardBg     = dark
+    ? "bg-[#111318] border-[#1e1e1e] shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+    : "bg-white border-gray-100 shadow-sm";
+  const sectionBg  = dark
+    ? "bg-[#0d1117] border border-[#1e1e1e] rounded-xl p-4"
+    : "bg-[#f8fafc] border border-gray-100 rounded-xl p-4";
+  const dividerCls = dark ? "border-[#1e1e1e]" : "border-gray-100";
+  const labelTx    = dark ? "text-gray-100"    : "text-gray-900";
+  const sectionLabelTx = dark
+    ? "text-[10px] font-semibold uppercase tracking-widest text-gray-500"
+    : "text-[10px] font-semibold uppercase tracking-widest text-gray-400";
+  const subTx      = dark ? "text-gray-400"    : "text-gray-500";
+  const inputCls   = dark
+    ? "bg-[#1b1f23] border-[#38434f] text-gray-100 placeholder-gray-600 focus:ring-[#4f46e5]"
+    : "bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-[#4f46e5]";
+  const footerBg   = dark ? "bg-[#0a0a0a] border-[#1e1e1e]" : "bg-white border-gray-100";
 
   const liConnected = li.status === "connected";
   const liPosting   = li.status === "posting";
@@ -496,23 +506,23 @@ export default function PostGenerator() {
   return (
     <div className={cn("min-h-screen flex flex-col transition-colors duration-200", pageBg)}>
 
-      {/* ── Header ── */}
+      {/* ── Header — matches landing nav style ── */}
       <header className={cn("border-b px-6 py-4 flex items-center justify-between gap-4", headerBg)}>
-        <h1 className={cn("text-xl font-bold tracking-tight flex-shrink-0", labelTx)}>
-          LinkedIn Post Generator
-        </h1>
+        {/* Brand links back to landing */}
+        <Link href="/" className={cn("text-base font-bold tracking-tight flex-shrink-0", labelTx)}>
+          PostGen<span className="text-[#4f46e5]">.</span>
+        </Link>
 
         <div className="flex items-center gap-3 ml-auto">
           {/* LinkedIn connect / user pill */}
           {liConnected ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-[#0077B5]/10 text-[#0077B5] rounded-full px-3 py-1.5 text-xs font-medium">
-                <LinkedInLogo className="w-3.5 h-3.5 [&_path]:fill-[#0077B5]" />
+              <div className="flex items-center gap-1.5 bg-[#4f46e5]/10 text-[#4f46e5] rounded-full px-3 py-1.5 text-xs font-medium">
                 <span className="max-w-[120px] truncate">{liName}</span>
               </div>
               <button
                 onClick={handleDisconnect}
-                className={cn("text-xs font-medium px-2 py-1 rounded-md transition-colors", subTx, dark ? "hover:bg-[#2a2a2a]" : "hover:bg-gray-100")}
+                className={cn("text-xs font-medium px-2 py-1 rounded-md transition-colors", subTx, dark ? "hover:bg-[#1e1e1e]" : "hover:bg-gray-100")}
               >
                 Disconnect
               </button>
@@ -522,27 +532,25 @@ export default function PostGenerator() {
               href="/api/auth/linkedin"
               className="flex items-center gap-2 bg-[#0077B5] hover:bg-[#005e8e] text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
             >
-              <LinkedInLogo className="w-3.5 h-3.5" />
+              {/* LinkedIn logo — kept here as it identifies the platform being connected */}
+              <svg viewBox="0 0 24 24" fill="white" className="w-3.5 h-3.5">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
               Connect LinkedIn
             </a>
           )}
 
-          {/* Dark mode */}
+          {/* Dark mode toggle */}
           <button
             onClick={() => setDark((d) => !d)}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             className={cn(
               "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-              dark ? "text-yellow-400 hover:bg-[#2a2a2a]" : "text-gray-500 hover:bg-gray-100",
+              dark ? "text-yellow-400 hover:bg-[#1e1e1e]" : "text-gray-500 hover:bg-gray-100",
             )}
           >
             {dark ? <IconSun /> : <IconMoon />}
           </button>
-
-          {/* LinkedIn logo badge */}
-          <div className="w-8 h-8 rounded-md bg-[#0077B5] flex items-center justify-center flex-shrink-0">
-            <LinkedInLogo className="w-5 h-5" />
-          </div>
         </div>
       </header>
 
@@ -551,9 +559,9 @@ export default function PostGenerator() {
         <div className="mx-auto max-w-6xl flex flex-col lg:flex-row gap-6">
 
           {/* ── Left panel ── */}
-          <div className={cn("w-full lg:w-[440px] lg:flex-shrink-0 rounded-xl border overflow-hidden", cardBg)}>
+          <div className={cn("w-full lg:w-[440px] lg:flex-shrink-0 rounded-2xl border overflow-hidden", cardBg)}>
 
-            {/* ── Section: Post Description ── */}
+            {/* Post Description */}
             <div className="px-5 pt-5 pb-4 space-y-2">
               <p className={sectionLabelTx}>Post Description</p>
               <textarea
@@ -566,7 +574,7 @@ export default function PostGenerator() {
                 rows={6}
                 maxLength={MAX_BRIEF_LENGTH}
                 className={cn(
-                  "w-full rounded-lg border px-3 py-2.5 text-sm resize-none transition-colors",
+                  "w-full rounded-xl border px-3 py-2.5 text-sm resize-none transition-colors",
                   "focus:outline-none focus:ring-2 focus:border-transparent",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
                   inputCls,
@@ -578,14 +586,11 @@ export default function PostGenerator() {
               </p>
             </div>
 
-            {/* ── Divider ── */}
             <div className={cn("border-t mx-5", dividerCls)} />
 
-            {/* ── Section: Tone & Style ── */}
+            {/* Tone & Style */}
             <div className="px-5 py-4 space-y-4">
               <p className={sectionLabelTx}>Tone &amp; Style</p>
-
-              {/* Tone dropdown */}
               <div className={sectionBg}>
                 <div className="space-y-2">
                   <label htmlFor="tone" className={cn("block text-xs font-medium", subTx)}>
@@ -598,12 +603,12 @@ export default function PostGenerator() {
                       onChange={(e) => setTone(e.target.value as Tone)}
                       disabled={isLoading}
                       className={cn(
-                        "w-full rounded-lg border px-3 py-2 text-sm appearance-none cursor-pointer transition-colors",
+                        "w-full rounded-xl border px-3 py-2 text-sm appearance-none cursor-pointer transition-colors",
                         "focus:outline-none focus:ring-2 focus:border-transparent",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
                         dark
-                          ? "bg-[#111318] border-[#38434f] text-gray-100 focus:ring-[#0077B5]"
-                          : "bg-white border-gray-200 text-gray-900 focus:ring-[#0077B5]",
+                          ? "bg-[#111318] border-[#38434f] text-gray-100 focus:ring-[#4f46e5]"
+                          : "bg-white border-gray-200 text-gray-900 focus:ring-[#4f46e5]",
                       )}
                       style={{ paddingRight: "2.5rem" }}
                     >
@@ -632,25 +637,24 @@ export default function PostGenerator() {
                     disabled={isLoading}
                     className="w-full h-1.5 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed"
                     style={{
-                      background: `linear-gradient(to right, #0077B5 ${toneValue}%, ${dark ? "#38434f" : "#e5e7eb"} ${toneValue}%)`,
-                      accentColor: "#0077B5",
+                      background: `linear-gradient(to right, #4f46e5 ${toneValue}%, ${dark ? "#38434f" : "#e5e7eb"} ${toneValue}%)`,
+                      accentColor: "#4f46e5",
                     }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* ── Divider ── */}
             <div className={cn("border-t mx-5", dividerCls)} />
 
-            {/* ── Section: Post Options ── */}
+            {/* Post Options */}
             <div className="px-5 py-4 space-y-3">
               <p className={sectionLabelTx}>Post Options</p>
-              <div className={cn(sectionBg, "space-y-0 divide-y", dark ? "divide-[#2a2a2a]" : "divide-gray-100")}>
+              <div className={cn(sectionBg, "space-y-0 divide-y", dark ? "divide-[#1e1e1e]" : "divide-gray-100")}>
                 {([
-                  { label: "Emphasize Hook",    desc: "Max effort on opening lines", checked: focusHook,  set: setFocusHook  },
-                  { label: "Include Emojis",    desc: "Add emojis to the content",   checked: useEmojis,  set: setUseEmojis  },
-                  { label: "Include Hashtags",  desc: "Add relevant tags at the end",checked: useTags,    set: setUseTags    },
+                  { label: "Emphasize Hook",    desc: "Max effort on opening lines",    checked: focusHook,  set: setFocusHook  },
+                  { label: "Include Emojis",    desc: "Add emojis to the content",      checked: useEmojis,  set: setUseEmojis  },
+                  { label: "Include Hashtags",  desc: "Add relevant tags at the end",   checked: useTags,    set: setUseTags    },
                 ] as const).map(({ label, desc, checked, set }) => (
                   <div key={label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                     <div>
@@ -663,13 +667,12 @@ export default function PostGenerator() {
               </div>
             </div>
 
-            {/* ── Divider ── */}
             <div className={cn("border-t mx-5", dividerCls)} />
 
-            {/* ── Footer: error + generate ── */}
+            {/* Generate */}
             <div className="px-5 py-4 space-y-3">
               {state.status === "error" && (
-                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                   {state.message}
                 </div>
               )}
@@ -679,8 +682,8 @@ export default function PostGenerator() {
                 disabled={!canSubmit}
                 className={cn(
                   "w-full rounded-xl py-3 text-sm font-semibold text-white transition-colors shadow-sm",
-                  "bg-[#0077B5] hover:bg-[#005e8e] active:bg-[#004f79]",
-                  "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-2",
+                  "bg-[#4f46e5] hover:bg-[#4338ca] active:bg-[#3730a3]",
+                  "focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-2",
                   "disabled:opacity-40 disabled:cursor-not-allowed",
                 )}
               >
@@ -695,10 +698,10 @@ export default function PostGenerator() {
           </div>
 
           {/* ── Right panel ── */}
-          <div className={cn("flex-1 min-w-0 rounded-xl border overflow-hidden", cardBg)}>
+          <div className={cn("flex-1 min-w-0 rounded-2xl border overflow-hidden", cardBg)}>
 
             {/* Panel header */}
-            <div className={cn("flex items-center justify-between px-5 py-3 border-b", dividerCls, dark ? "bg-[#0d1117]" : "bg-gray-50")}>
+            <div className={cn("flex items-center justify-between px-5 py-3 border-b", dividerCls, dark ? "bg-[#0d1117]" : "bg-[#f8fafc]")}>
               <div className="flex items-center gap-2.5">
                 <p className={sectionLabelTx}>Preview</p>
                 {state.status === "success" && (
@@ -712,6 +715,7 @@ export default function PostGenerator() {
                   </span>
                 )}
               </div>
+              {/* Desktop / Mobile toggle */}
               <div className={cn("flex rounded-lg overflow-hidden border", dark ? "border-[#38434f]" : "border-gray-200")}>
                 {(["desktop", "mobile"] as const).map((v) => (
                   <button
@@ -720,7 +724,7 @@ export default function PostGenerator() {
                     className={cn(
                       "px-4 py-1.5 text-xs font-semibold transition-colors capitalize",
                       previewView === v
-                        ? "bg-[#0077B5] text-white"
+                        ? "bg-[#4f46e5] text-white"
                         : dark
                           ? "bg-[#1b1f23] text-gray-400 hover:text-gray-200"
                           : "bg-white text-gray-600 hover:text-gray-800",
@@ -740,24 +744,23 @@ export default function PostGenerator() {
 
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center min-h-64 gap-3">
-                  <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#0077B5] border-t-transparent" />
+                  <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#4f46e5] border-t-transparent" />
                   <p className={cn("text-sm", subTx)}>Generating your post…</p>
                 </div>
               ) : state.status === "success" ? (
                 <div className="space-y-3">
                   <LinkedInCard post={state.post} mobile={previewView === "mobile"} dark={dark} />
 
-                  {/* Action buttons */}
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleCopy}
                       className={cn(
-                        "flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors border",
+                        "flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors border",
                         dark
                           ? "border-[#38434f] bg-[#1b1f23] text-gray-300 hover:bg-[#2a2f35]"
-                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-                        "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-1",
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
+                        "focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-1",
                       )}
                     >
                       {copied ? "✓ Copied!" : "Copy Post"}
@@ -769,12 +772,12 @@ export default function PostGenerator() {
                         onClick={handlePostToLinkedIn}
                         disabled={liPosting || liPosted || postOverLimit}
                         className={cn(
-                          "flex-1 rounded-lg py-2.5 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2",
+                          "flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2",
                           liPosted
                             ? "bg-green-600"
-                            : "bg-[#0077B5] hover:bg-[#005e8e] active:bg-[#004f79]",
+                            : "bg-[#4f46e5] hover:bg-[#4338ca] active:bg-[#3730a3]",
                           "disabled:opacity-50 disabled:cursor-not-allowed",
-                          "focus:outline-none focus:ring-2 focus:ring-[#0077B5] focus:ring-offset-1",
+                          "focus:outline-none focus:ring-2 focus:ring-[#4f46e5] focus:ring-offset-1",
                         )}
                       >
                         {liPosting ? (
@@ -785,26 +788,21 @@ export default function PostGenerator() {
                         ) : liPosted ? (
                           "✓ Posted!"
                         ) : (
-                          <>
-                            <LinkedInLogo className="w-3.5 h-3.5" />
-                            Post to LinkedIn
-                          </>
+                          "Post to LinkedIn"
                         )}
                       </button>
                     )}
                   </div>
 
-                  {/* Post error */}
                   {li.status === "post_error" && (
-                    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                       {li.message}
                     </div>
                   )}
 
-                  {/* Not connected nudge */}
                   {!liConnected && (
                     <p className={cn("text-xs text-center", subTx)}>
-                      <a href="/api/auth/linkedin" className="text-[#0077B5] font-medium hover:underline">
+                      <a href="/api/auth/linkedin" className="text-[#4f46e5] font-medium hover:underline">
                         Connect LinkedIn
                       </a>{" "}
                       to post directly from here
@@ -821,8 +819,14 @@ export default function PostGenerator() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className={cn("border-t py-4 text-center text-xs", footerBg, subTx)}>
-        Powered by AI • LinkedIn Post Generator
+      <footer className={cn("border-t py-5 px-6 flex items-center justify-between max-w-6xl mx-auto w-full", footerBg, subTx)}>
+        <span className={cn("text-sm font-bold", labelTx)}>
+          PostGen<span className="text-[#4f46e5]">.</span>
+        </span>
+        <p className="text-xs">Powered by AI · Free forever</p>
+        <Link href="/" className="text-xs text-[#4f46e5] font-semibold hover:underline">
+          ← Home
+        </Link>
       </footer>
     </div>
   );
